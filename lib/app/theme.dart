@@ -11,6 +11,6 @@ abstract final class FestaTheme {
   static ThemeData _build(Brightness brightness) => ThemeData(
     colorScheme: ColorScheme.fromSeed(seedColor: _seed, brightness: brightness),
     inputDecorationTheme: const InputDecorationTheme(border: OutlineInputBorder()),
-    filledButtonTheme: FilledButtonThemeData(style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48))),
+    filledButtonTheme: FilledButtonThemeData(style: FilledButton.styleFrom(minimumSize: const Size(64, 48))),
   );
 }

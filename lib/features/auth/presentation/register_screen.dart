@@ -27,6 +27,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   AccountType _accountType = AccountType.user;
   bool _submitting = false;
+
+  /// Tras el primer intento de envío los errores se actualizan mientras el usuario escribe.
+  AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
   ApiException? _error;
 
   @override
@@ -39,7 +42,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   Future<void> _submit() async {
-    if (_submitting || !_formKey.currentState!.validate()) return;
+    if (_submitting) return;
+    if (!_formKey.currentState!.validate()) {
+      setState(() => _autovalidateMode = AutovalidateMode.onUserInteraction);
+      return;
+    }
     setState(() {
       _submitting = true;
       _error = null;
@@ -70,6 +77,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       errorMessage: _error?.message,
       child: Form(
         key: _formKey,
+        autovalidateMode: _autovalidateMode,
         child: AutofillGroup(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

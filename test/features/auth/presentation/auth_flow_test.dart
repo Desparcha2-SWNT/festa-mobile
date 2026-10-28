@@ -67,6 +67,18 @@ void main() {
     );
   });
 
+  testWidgets('tras un envío fallido los errores se actualizan al escribir', (tester) async {
+    await pumpApp(tester);
+
+    await tester.tap(find.byKey(const Key('login.submit')));
+    await tester.pump();
+    expect(find.text('El correo es obligatorio.'), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('login.email')), 'ana@escuelaing.edu.co');
+    await tester.pump();
+    expect(find.text('El correo es obligatorio.'), findsNothing);
+  });
+
   testWidgets('el login muestra el mensaje del servidor con credenciales inválidas', (tester) async {
     stubLogin(
       () => throw const ApiException(
