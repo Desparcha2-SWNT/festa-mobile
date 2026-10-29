@@ -1,0 +1,111 @@
+# CD de festa-mobile (SCRUM-45).
+# Compila el APK de release y lo publica como un GitHub Release con un QR para instalarlo
+# directo en un celular (pilot con estudiantes ECI, sin pasar por Play Store).
+#
+# Publica solo cuando corre por un push real a `main`. En un PR o al lanzarlo a mano
+# (workflow_dispatch) solo compila el APK y lo deja como artefacto de build, sin publicar nada.
+#
+# El release se firma con la llave de debug (lo que trae la plantilla de Flutter por defecto):
+# suficiente para instalar en los celulares del pilot, no para publicarlo en una tienda.
+#
+# API_BASE_URL: mientras no haya un gateway desplegado (SCRUM-134, pendiente del laboratorio
+# de AWS), el APK apunta por defecto a http://10.0.2.2:8000 (solo sirve en el emulador). Cuando
+# haya una URL real, se configura como variable del repositorio (Settings → Variables → Actions)
+# con el nombre API_BASE_URL, sin tocar este workflow.
+name: CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - pubspec.yaml
+      - pubspec.lock
+      - android/**
+      - lib/**
+      - .github/workflows/cd.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    name: Build y publicar APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: ¿Publicar esta ejecución?
+        id: publicar
+        run: echo "si=${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}" >> "$GITHUB_OUTPUT"
+
+      - name: URL del API (dart-define)
+        id: api
+        run: |
+          if [ -n "${{ vars.API_BASE_URL }}" ]; then
+            echo "define=--dart-define=API_BASE_URL=${{ vars.API_BASE_URL }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "define=" >> "$GITHUB_OUTPUT"
+            echo "::notice::No hay variable de repositorio API_BASE_URL: el APK queda apuntando al gateway local (solo sirve en el emulador). Configurarla cuando el gateway esté desplegado."
+          fi
+
+      - name: Compilar APK de release
+        run: flutter build apk --release ${{ steps.api.outputs.define }}
+
+      - name: Preparar el artefacto
+        id: artefacto
+        run: |
+          version=$(sed -n 's/^version: //p' pubspec.yaml)
+          nombre="festa-mobile-v${version}.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "$nombre"
+          {
+            echo "nombre=$nombre"
+            echo "tag=mobile-v${version}-${{ github.run_number }}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Subir el APK como artefacto del build (sin publicar)
+        if: steps.publicar.outputs.si != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artefacto.outputs.nombre }}
+          path: ${{ steps.artefacto.outputs.nombre }}
+          retention-days: 14
+
+      # La URL del asset en un release de GitHub es predecible (releases/download/<tag>/<archivo>),
+      # así que el QR se genera antes de publicar y apunta directo a la descarga del APK.
+      - name: Generar el QR de instalación
+        if: steps.publicar.outputs.si == 'true'
+        run: |
+          pip install --quiet "qrcode[pil]"
+          url="https://github.com/${{ github.repository }}/releases/download/${{ steps.artefacto.outputs.tag }}/${{ steps.artefacto.outputs.nombre }}"
+          python3 -c "import qrcode; qrcode.make('$url').save('qr.png')"
+
+      - name: Publicar el release en GitHub
+        if: steps.publicar.outputs.si == 'true'
+        uses: softprops/action-gh-release@v3.0.3
+        with:
+          tag_name: ${{ steps.artefacto.outputs.tag }}
+          name: Festa mobile ${{ steps.artefacto.outputs.tag }}
+          body: |
+            APK de instalación directa para el pilot (no pasa por una tienda de apps).
+
+            Escanea este código o descarga el `.apk` de abajo, e instálalo habilitando "orígenes
+            desconocidos" en el celular:
+
+            ![QR de instalación](https://github.com/${{ github.repository }}/releases/download/${{ steps.artefacto.outputs.tag }}/qr.png)
+          files: |
+            ${{ steps.artefacto.outputs.nombre }}
+            qr.png
