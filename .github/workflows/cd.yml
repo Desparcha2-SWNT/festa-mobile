@@ -57,6 +57,12 @@ jobs:
         run: |
           if [ -n "${{ vars.API_BASE_URL }}" ]; then
             echo "define=--dart-define=API_BASE_URL=${{ vars.API_BASE_URL }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ steps.publicar.outputs.si }}" = "true" ]; then
+            # Publicar un release real sin esto es publicar un APK que ningún celular físico
+            # puede usar (queda apuntando a http://10.0.2.2:8000, solo sirve en el emulador) —
+            # mejor que el release ni salga a que salga roto y alguien lo escanee sin saberlo.
+            echo "::error::Falta la variable de repositorio API_BASE_URL. No se publica un release con la URL del emulador (los celulares físicos no podrían conectarse). Configúrala en Settings → Variables → Actions."
+            exit 1
           else
             echo "define=" >> "$GITHUB_OUTPUT"
             echo "::notice::No hay variable de repositorio API_BASE_URL: el APK queda apuntando al gateway local (solo sirve en el emulador). Configurarla cuando el gateway esté desplegado."
