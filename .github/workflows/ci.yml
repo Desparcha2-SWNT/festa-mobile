@@ -24,6 +24,9 @@ jobs:
     permissions:
       contents: read
       security-events: write
+    with:
+      # Este repo compila y prueba en su propio job; el build del CI reutilizable se omite (no queda en verde, queda "skipped").
+      stack: none
 
   flutter:
     name: Formato, linter y pruebas (Flutter)
