@@ -126,6 +126,7 @@ void main() {
         password: any(named: 'password'),
         displayName: any(named: 'displayName'),
         accountType: any(named: 'accountType'),
+        acceptedPrivacyPolicy: any(named: 'acceptedPrivacyPolicy'),
       ),
     ).thenThrow(
       const ApiException(code: 'EMAIL_TAKEN', message: 'Ya existe una cuenta con ese correo.', statusCode: 409),
@@ -142,6 +143,28 @@ void main() {
     expect(find.text('Ya existe una cuenta con ese correo.'), findsOneWidget);
   });
 
+  testWidgets('el registro no se envía si no se autoriza el tratamiento de datos', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(find.text('¿No tienes cuenta? Regístrate'));
+    await tester.pumpAndSettle();
+
+    await _fillRegister(tester, acceptPrivacy: false);
+    await tester.ensureVisible(find.byKey(const Key('register.submit')));
+    await tester.tap(find.byKey(const Key('register.submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Debes autorizar el tratamiento de tus datos personales para registrarte.'), findsOneWidget);
+    verifyNever(
+      () => api.register(
+        email: any(named: 'email'),
+        password: any(named: 'password'),
+        displayName: any(named: 'displayName'),
+        accountType: any(named: 'accountType'),
+        acceptedPrivacyPolicy: any(named: 'acceptedPrivacyPolicy'),
+      ),
+    );
+  });
+
   testWidgets('el registro exitoso entra al inicio con el tipo de cuenta elegido', (tester) async {
     when(
       () => api.register(
@@ -149,6 +172,7 @@ void main() {
         password: any(named: 'password'),
         displayName: any(named: 'displayName'),
         accountType: any(named: 'accountType'),
+        acceptedPrivacyPolicy: any(named: 'acceptedPrivacyPolicy'),
       ),
     ).thenAnswer((_) async => testSession());
     await pumpApp(tester);
@@ -167,15 +191,21 @@ void main() {
         password: 'festa123',
         displayName: 'Ana',
         accountType: AccountType.merchant,
+        acceptedPrivacyPolicy: true,
       ),
     ).called(1);
     expect(find.text('Hola, Ana'), findsOneWidget);
   });
 }
 
-Future<void> _fillRegister(WidgetTester tester) async {
+Future<void> _fillRegister(WidgetTester tester, {bool acceptPrivacy = true}) async {
   await tester.enterText(find.byKey(const Key('register.name')), 'Ana');
   await tester.enterText(find.byKey(const Key('register.email')), 'ana@escuelaing.edu.co');
   await tester.enterText(find.byKey(const Key('register.password')), 'festa123');
   await tester.enterText(find.byKey(const Key('register.confirmPassword')), 'festa123');
+  if (acceptPrivacy) {
+    await tester.ensureVisible(find.byKey(const Key('register.privacyCheckbox')));
+    await tester.tap(find.byKey(const Key('register.privacyCheckbox')));
+    await tester.pump();
+  }
 }
