@@ -10,7 +10,12 @@ import 'auth_validators.dart';
 import 'widgets/auth_scaffold.dart';
 import 'widgets/password_field.dart';
 
-/// SCRUM-50: registro con correo y contraseña.
+const _privacyRequired = 'Debes autorizar el tratamiento de tus datos personales para registrarte.';
+const _privacyText =
+    'Autorizo el tratamiento de mis datos personales según la Política de privacidad de Festa '
+    '(versión 1.0). Puedo conocerlos, actualizarlos y suprimirlos cuando quiera.';
+
+/// SCRUM-50: registro con correo y contraseña. SCRUM-126: exige la autorización de datos.
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
@@ -26,6 +31,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _confirmPassword = TextEditingController();
 
   AccountType _accountType = AccountType.user;
+  bool _acceptedPrivacy = false;
   bool _submitting = false;
 
   /// Tras el primer intento de envío los errores se actualizan mientras el usuario escribe.
@@ -60,6 +66,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             password: _password.text,
             displayName: _name.text.trim(),
             accountType: _accountType,
+            acceptedPrivacyPolicy: _acceptedPrivacy,
           );
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e);
@@ -136,6 +143,36 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 autofillHints: const [AutofillHints.newPassword],
                 textInputAction: TextInputAction.done,
                 onFieldSubmitted: (_) => _submit(),
+              ),
+              const SizedBox(height: 16),
+              // Ley 1581 de 2012: sin autorización expresa no se crea la cuenta (SCRUM-126).
+              FormField<bool>(
+                key: const Key('register.privacy'),
+                initialValue: _acceptedPrivacy,
+                validator: (accepted) => accepted == true ? null : _privacyRequired,
+                builder: (field) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CheckboxListTile(
+                      key: const Key('register.privacyCheckbox'),
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      value: _acceptedPrivacy,
+                      onChanged: _submitting
+                          ? null
+                          : (value) {
+                              setState(() => _acceptedPrivacy = value ?? false);
+                              field.didChange(value ?? false);
+                            },
+                      title: const Text(_privacyText),
+                    ),
+                    if (field.hasError)
+                      Text(
+                        field.errorText!,
+                        style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12),
+                      ),
+                  ],
+                ),
               ),
               const SizedBox(height: 24),
               FilledButton(

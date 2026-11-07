@@ -18,11 +18,13 @@ class AuthApi {
     required String password,
     required String displayName,
     required AccountType accountType,
+    required bool acceptedPrivacyPolicy,
   }) => _postSession('/api/auth/register', {
     'email': email,
     'password': password,
     'displayName': displayName,
     'accountType': accountType.apiValue,
+    'acceptedPrivacyPolicy': acceptedPrivacyPolicy,
   });
 
   Future<AuthSession> login({required String email, required String password}) =>

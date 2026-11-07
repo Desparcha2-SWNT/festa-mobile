@@ -30,12 +30,14 @@ class AuthRepository {
     required String password,
     required String displayName,
     required AccountType accountType,
+    required bool acceptedPrivacyPolicy,
   }) async {
     final session = await _api.register(
       email: email,
       password: password,
       displayName: displayName,
       accountType: accountType,
+      acceptedPrivacyPolicy: acceptedPrivacyPolicy,
     );
     return _start(session);
   }

@@ -33,10 +33,17 @@ class SessionController extends AsyncNotifier<Account?> {
     required String password,
     required String displayName,
     required AccountType accountType,
+    required bool acceptedPrivacyPolicy,
   }) async {
     final account = await ref
         .read(authRepositoryProvider)
-        .register(email: email, password: password, displayName: displayName, accountType: accountType);
+        .register(
+          email: email,
+          password: password,
+          displayName: displayName,
+          accountType: accountType,
+          acceptedPrivacyPolicy: acceptedPrivacyPolicy,
+        );
     state = AsyncData(account);
   }
 
