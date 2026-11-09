@@ -2,8 +2,13 @@
 # Compila el APK de release y lo publica como un GitHub Release con un QR para instalarlo
 # directo en un celular (pilot con estudiantes ECI, sin pasar por Play Store).
 #
-# Publica solo cuando corre por un push real a `main`. En un PR o al lanzarlo a mano
-# (workflow_dispatch) solo compila el APK y lo deja como artefacto de build, sin publicar nada.
+# Publica solo cuando corre sobre `main`: por un push, o lanzándolo a mano (workflow_dispatch) eligiendo
+# la rama `main`. En un PR o al lanzarlo a mano sobre otra rama solo compila el APK y lo deja como
+# artefacto de build, sin publicar nada.
+#
+# Lanzarlo a mano sirve para republicar sin un commit nuevo cuando cambia la URL del backend (cada
+# despliegue en el Learner Lab da una URL distinta). La URL puede pasarse como entrada `api_base_url`;
+# si se deja vacía, se usa la variable de repositorio API_BASE_URL.
 #
 # El release se firma con la llave de debug (lo que trae la plantilla de Flutter por defecto):
 # suficiente para instalar en los celulares del pilot, no para publicarlo en una tienda.
@@ -26,6 +31,11 @@ on:
       - lib/**
       - .github/workflows/cd.yml
   workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: "URL del API (opcional; si se deja vacía se usa la variable de repositorio API_BASE_URL)"
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -50,18 +60,28 @@ jobs:
 
       - name: ¿Publicar esta ejecución?
         id: publicar
-        run: echo "si=${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}" >> "$GITHUB_OUTPUT"
+        run: echo "si=${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' }}" >> "$GITHUB_OUTPUT"
 
       - name: URL del API (dart-define)
         id: api
+        env:
+          # La entrada tiene prioridad sobre la variable. Van por el entorno y no interpoladas en el
+          # script, para que un valor raro no se ejecute como comando.
+          URL_ENTRADA: ${{ inputs.api_base_url }}
+          URL_VARIABLE: ${{ vars.API_BASE_URL }}
         run: |
-          if [ -n "${{ vars.API_BASE_URL }}" ]; then
-            echo "define=--dart-define=API_BASE_URL=${{ vars.API_BASE_URL }}" >> "$GITHUB_OUTPUT"
+          url="${URL_ENTRADA:-$URL_VARIABLE}"
+          case "$url" in
+            ""|https://*) ;;
+            *) echo "::error::API_BASE_URL debe empezar con https:// (recibido: $url)"; exit 1 ;;
+          esac
+          if [ -n "$url" ]; then
+            echo "define=--dart-define=API_BASE_URL=$url" >> "$GITHUB_OUTPUT"
           elif [ "${{ steps.publicar.outputs.si }}" = "true" ]; then
             # Publicar un release real sin esto es publicar un APK que ningún celular físico
             # puede usar (queda apuntando a http://10.0.2.2:8000, solo sirve en el emulador) —
             # mejor que el release ni salga a que salga roto y alguien lo escanee sin saberlo.
-            echo "::error::Falta la variable de repositorio API_BASE_URL. No se publica un release con la URL del emulador (los celulares físicos no podrían conectarse). Configúrala en Settings → Variables → Actions."
+            echo "::error::Falta la URL del API. No se publica un release con la URL del emulador (los celulares físicos no podrían conectarse). Configura la variable de repositorio API_BASE_URL (Settings → Variables → Actions) o pásala como entrada al lanzar el workflow."
             exit 1
           else
             echo "define=" >> "$GITHUB_OUTPUT"
