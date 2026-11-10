@@ -71,12 +71,15 @@ jobs:
           URL_VARIABLE: ${{ vars.API_BASE_URL }}
         run: |
           url="${URL_ENTRADA:-$URL_VARIABLE}"
-          case "$url" in
-            ""|https://*) ;;
-            *) echo "::error::API_BASE_URL debe empezar con https:// (recibido: $url)"; exit 1 ;;
-          esac
+          # Expresión estricta: solo https, host, puerto y ruta con caracteres seguros. Rechaza espacios,
+          # saltos de línea, ; | & $ ` y comillas, así que la URL no puede inyectar comandos ni otra salida.
+          if [ -n "$url" ] && ! [[ "$url" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~/-]*)?$ ]]; then
+            echo "::error::API_BASE_URL no es una URL https válida"
+            exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
           if [ -n "$url" ]; then
-            echo "define=--dart-define=API_BASE_URL=$url" >> "$GITHUB_OUTPUT"
+            :
           elif [ "${{ steps.publicar.outputs.si }}" = "true" ]; then
             # Publicar un release real sin esto es publicar un APK que ningún celular físico
             # puede usar (queda apuntando a http://10.0.2.2:8000, solo sirve en el emulador) —
@@ -84,12 +87,13 @@ jobs:
             echo "::error::Falta la URL del API. No se publica un release con la URL del emulador (los celulares físicos no podrían conectarse). Configura la variable de repositorio API_BASE_URL (Settings → Variables → Actions) o pásala como entrada al lanzar el workflow."
             exit 1
           else
-            echo "define=" >> "$GITHUB_OUTPUT"
             echo "::notice::No hay variable de repositorio API_BASE_URL: el APK queda apuntando al gateway local (solo sirve en el emulador). Configurarla cuando el gateway esté desplegado."
           fi
 
       - name: Compilar APK de release
-        run: flutter build apk --release ${{ steps.api.outputs.define }}
+        env:
+          API_URL: ${{ steps.api.outputs.url }}
+        run: flutter build apk --release ${API_URL:+--dart-define=API_BASE_URL=$API_URL}
 
       - name: Preparar el artefacto
         id: artefacto
