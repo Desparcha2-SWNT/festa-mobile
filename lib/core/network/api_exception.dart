@@ -2,9 +2,9 @@ import 'package:dio/dio.dart';
 
 /// Error de la API traducido a algo que la UI puede mostrar.
 ///
-/// Los servicios responden `{"error": {"code", "message", "details"}}` con mensajes en español.
-/// Kong (gateway) responde `{"message": "..."}` en sus 401 y 429, así que para esos casos
-/// nos guiamos por el código de estado.
+/// Los servicios responden `{"error": {"code", "message", "details"}}` con mensajes en español;
+/// event-service responde solo `{"error": "mensaje"}`. Kong (gateway) responde `{"message": "..."}`
+/// en sus 401 y 429, así que para esos casos nos guiamos por el código de estado.
 class ApiException implements Exception {
   const ApiException({required this.code, required this.message, this.statusCode, this.fieldErrors = const {}});
 
@@ -26,6 +26,11 @@ class ApiException implements Exception {
         statusCode: status,
         fieldErrors: _fieldErrors(error['details']),
       );
+    }
+
+    final plainError = _plainError(response.data);
+    if (plainError != null) {
+      return ApiException(code: 'HTTP_$status', message: _asSentence(plainError), statusCode: status);
     }
 
     return switch (status) {
@@ -59,6 +64,19 @@ class ApiException implements Exception {
       return data['error'] as Map<String, dynamic>;
     }
     return null;
+  }
+
+  static String? _plainError(Object? data) {
+    if (data is Map<String, dynamic> && data['error'] is String && (data['error'] as String).isNotEmpty) {
+      return data['error'] as String;
+    }
+    return null;
+  }
+
+  /// `evento no encontrado` → `Evento no encontrado.`
+  static String _asSentence(String text) {
+    final capitalized = text[0].toUpperCase() + text.substring(1);
+    return capitalized.endsWith('.') ? capitalized : '$capitalized.';
   }
 
   static Map<String, String> _fieldErrors(Object? details) {
