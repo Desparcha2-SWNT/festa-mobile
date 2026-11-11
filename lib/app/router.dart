@@ -103,7 +103,10 @@ String? _redirect({
 /// A dónde debe ir una cuenta de comercio mientras su perfil no está verificado, o `null` si ya
 /// puede usar la app. El formulario siempre está permitido (para corregir o editar el perfil).
 String? _merchantGate(String location, AsyncValue<MerchantProfile?> merchant) {
-  if (merchant.isLoading && !merchant.hasValue) return Routes.splash;
+  // Mientras se consulta, el valor puede ser uno viejo (por ejemplo, el `null` de antes de recuperar
+  // la sesión): se espera en vez de decidir con él. Las pantallas del comercio muestran su propia carga.
+  const merchantScreens = {Routes.merchantStatus, Routes.merchantForm};
+  if (merchant.isLoading && !merchantScreens.contains(location)) return Routes.splash;
   // La pantalla de estado muestra el error con un botón para reintentar.
   if (merchant.hasError && !merchant.hasValue) return Routes.merchantStatus;
 

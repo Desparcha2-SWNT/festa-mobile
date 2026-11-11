@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:festa/app/festa_app.dart';
 import 'package:festa/features/auth/application/auth_providers.dart';
 import 'package:festa/features/auth/application/session_controller.dart';
@@ -31,7 +33,7 @@ void main() {
   });
 
   /// Abre la app con la sesión guardada de [account] (ya decidió sobre su ubicación).
-  Future<void> pumpApp(WidgetTester tester, {Account account = testMerchantAccount}) async {
+  Future<void> pumpApp(WidgetTester tester, {Account account = testMerchantAccount, bool settle = true}) async {
     when(() => authApi.refresh('refresh-0')).thenAnswer((_) async => testSession('1', account));
     await tester.pumpWidget(
       ProviderScope(
@@ -53,7 +55,8 @@ void main() {
         child: const FestaApp(),
       ),
     );
-    await tester.pumpAndSettle();
+    // Sin `settle` solo avanza unos cuadros: la pantalla de carga tiene una animación sin fin.
+    settle ? await tester.pumpAndSettle() : await tester.pump(const Duration(milliseconds: 500));
   }
 
   Future<void> tapNext(WidgetTester tester) async {
@@ -160,6 +163,20 @@ void main() {
     expect(find.text(testMerchantDraft.address), findsOneWidget);
     expect(find.text('Mi comercio'), findsWidgets);
     expect(find.text('Explorar'), findsNothing);
+  });
+
+  testWidgets('mientras carga el perfil no confunde un comercio verificado con uno sin perfil', (tester) async {
+    // Con red real el perfil llega después de la sesión: no debe mostrarse el formulario mientras tanto.
+    final profile = Completer<MerchantProfile?>();
+    when(() => merchantApi.mine()).thenAnswer((_) => profile.future);
+    await pumpApp(tester, settle: false);
+
+    expect(find.text('Paso 2 de 3 · Datos del negocio'), findsNothing);
+
+    profile.complete(testMerchantProfile(MerchantStatus.verified));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Verificado'), findsOneWidget);
   });
 
   testWidgets('una persona no pasa por la verificación de comercio', (tester) async {
