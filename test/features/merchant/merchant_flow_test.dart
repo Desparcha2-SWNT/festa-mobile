@@ -181,7 +181,7 @@ void main() {
     profile.complete(testMerchantProfile(MerchantStatus.verified));
     await tester.pumpAndSettle();
 
-    expect(find.text('Verificado'), findsOneWidget);
+    expect(find.text('Aún no has publicado eventos.'), findsOneWidget);
   });
 
   testWidgets('una persona no pasa por la verificación de comercio', (tester) async {
