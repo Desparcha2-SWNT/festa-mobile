@@ -54,6 +54,8 @@ class _MapboxMapViewState extends State<MapboxMapView> {
   void _onMapCreated(MapboxMap map) {
     _map = map;
     _updateUserLocation();
+    // La barra de escala no está en el diseño y se monta sobre la barra de estado.
+    map.scaleBar.updateSettings(ScaleBarSettings(enabled: false));
   }
 
   void _updateUserLocation() {
@@ -62,6 +64,9 @@ class _MapboxMapViewState extends State<MapboxMapView> {
         enabled: widget.config.showUserLocation,
         pulsingEnabled: true,
         pulsingColor: FestaTheme.brand.toARGB32(),
+        // En el slot de abajo de los eventos (que van en `top`): en el campus el usuario suele
+        // estar sobre un clúster y taparía su número.
+        slot: 'middle',
       ),
     );
   }
