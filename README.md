@@ -75,3 +75,9 @@ lib/
   muestra el punto del usuario cuando hay consentimiento y permiso; si no, se centra en la Escuela con el aviso.
 - Solo `MapboxMapView` conoce el SDK de Mapbox. Las pantallas mueven la cámara con `MapCameraController`, y las pruebas
   cambian la vista con `mapViewBuilderProvider`, porque el mapa nativo no se dibuja en `flutter test`.
+- Los eventos cercanos (`nearbyEventsProvider`, radio de 3 km) se dibujan como círculos del color de su categoría en
+  una fuente GeoJSON, para que SCRUM-77 pueda agruparlos en clústeres en la misma fuente. Al tocar uno aparece su
+  tarjeta, y desde ella se abre `EventDetailScreen` (`/events/:id`, que lee `GET /api/events/:id`).
+- **Pendiente de SCRUM-74:** `EventsApi.nearby` usa el contrato propuesto
+  `GET /api/events/nearby?lat=&lng=&radiusKm=` → `{"items": [Evento]}`. Hasta que event-service lo publique, el mapa
+  muestra el aviso «No pudimos cargar los eventos».

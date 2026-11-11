@@ -3,6 +3,7 @@ import 'package:festa/features/auth/data/auth_api.dart';
 import 'package:festa/features/auth/data/token_storage.dart';
 import 'package:festa/features/auth/domain/account.dart';
 import 'package:festa/features/auth/domain/auth_session.dart';
+import 'package:festa/features/events/domain/event.dart';
 import 'package:festa/features/location/data/consents_api.dart';
 import 'package:festa/features/location/data/device_location.dart';
 import 'package:festa/features/location/data/location_consent_store.dart';
@@ -70,3 +71,41 @@ class FakeDeviceLocation implements DeviceLocation {
 }
 
 const testDevicePoint = GeoPoint(latitude: 4.65, longitude: -74.06);
+
+/// Evento tal como lo devuelve event-service (`toApi`).
+Map<String, dynamic> eventJson({
+  String id = 'e1',
+  String title = '10ª Feria del Autómata',
+  String category = 'musical',
+  bool ticketed = false,
+  int priceCents = 0,
+  bool aiDescription = true,
+}) => {
+  'eventId': id,
+  'organizerId': 'o1',
+  'organizerType': ticketed ? 'merchant' : 'user',
+  'organizerName': 'Programa de Ingeniería Mecánica',
+  'title': title,
+  'description': 'Muestra de autómatas que dan vida a la literatura colombiana.',
+  'descriptionAiGenerated': aiDescription,
+  'category': category,
+  'tags': <String>[],
+  'startsAt': '2026-11-12T13:30:00.000Z',
+  'endsAt': '2026-11-12T16:30:00.000Z',
+  'venue': {
+    'name': 'Bloque I',
+    'address': 'AK 45 #205-59',
+    'location': {'lat': 4.7829, 'lng': -74.0421},
+  },
+  'capacity': 30,
+  'ticketed': ticketed,
+  'priceCents': priceCents,
+  'currency': 'COP',
+  'featured': false,
+  'isLive': false,
+  'coverImageUrl': null,
+  'status': 'published',
+};
+
+Event testEvent({String id = 'e1', String title = '10ª Feria del Autómata', String category = 'musical'}) =>
+    Event.fromJson(eventJson(id: id, title: title, category: category));

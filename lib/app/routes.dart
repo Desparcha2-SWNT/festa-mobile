@@ -5,4 +5,7 @@ abstract final class Routes {
   static const locationConsent = '/location-consent';
   static const home = '/';
   static const map = '/map';
+  static const eventDetailPattern = '/events/:id';
+
+  static String eventDetail(String id) => '/events/$id';
 }

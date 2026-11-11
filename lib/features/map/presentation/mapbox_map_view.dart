@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
@@ -20,8 +22,16 @@ class _MapboxMapViewState extends State<MapboxMapView> {
   /// Nivel de barrio: se ven las calles y los lugares alrededor del usuario.
   static const _zoom = 14.0;
 
+  // Los eventos van en una fuente GeoJSON con una capa de círculos (y no como anotaciones) para
+  // poder agruparlos en clústeres por zona (SCRUM-77) activando `cluster` en la misma fuente.
+  static const _markersSourceId = 'festa-events';
+  static const _markersLayerId = 'festa-events-circles';
+
   final _viewport = ViewportController();
   MapboxMap? _map;
+
+  /// La fuente de marcadores existe solo después de cargar el estilo.
+  bool _markersReady = false;
 
   @override
   void initState() {
@@ -37,6 +47,7 @@ class _MapboxMapViewState extends State<MapboxMapView> {
       widget.config.camera.addListener(_onCameraRequest);
     }
     if (oldWidget.config.showUserLocation != widget.config.showUserLocation) _updateUserLocation();
+    if (!identical(oldWidget.config.markers, widget.config.markers)) _updateMarkers();
   }
 
   @override
@@ -56,7 +67,61 @@ class _MapboxMapViewState extends State<MapboxMapView> {
     _updateUserLocation();
     // La barra de escala no está en el diseño y se monta sobre la barra de estado.
     map.scaleBar.updateSettings(ScaleBarSettings(enabled: false));
+    map.addInteraction(
+      TapInteraction(FeaturesetDescriptor(layerId: _markersLayerId), (feature, _) {
+        final id = feature.properties['id'];
+        if (id is String) widget.config.onMarkerTap?.call(id);
+      }),
+      interactionID: 'tap_event_markers',
+    );
   }
+
+  /// Cargar un estilo borra las fuentes y capas propias, así que se agregan en cada carga.
+  Future<void> _onStyleLoaded(StyleLoadedEventData _) async {
+    final map = _map;
+    if (map == null) return;
+    _markersReady = false;
+    await map.addSource(GeoJsonSource(id: _markersSourceId, data: _markersGeoJson()));
+    await map.addLayer(
+      CircleLayer(
+        id: _markersLayerId,
+        sourceId: _markersSourceId,
+        slot: 'top',
+        circleRadius: 9,
+        circleColorExpression: ['get', 'color'],
+        circleStrokeWidth: 2,
+        circleStrokeColor: Colors.white.toARGB32(),
+      ),
+    );
+    _markersReady = true;
+    // Los eventos pudieron cambiar mientras se agregaban la fuente y las capas (son asíncronas);
+    // esas actualizaciones se ignoraron porque la fuente no estaba lista, así que se sincroniza aquí.
+    await _updateMarkers();
+  }
+
+  Future<void> _updateMarkers() async {
+    final map = _map;
+    if (map == null || !_markersReady) return;
+    final source = await map.getSource(_markersSourceId);
+    await (source as GeoJsonSource).updateGeoJSON(_markersGeoJson());
+  }
+
+  String _markersGeoJson() => jsonEncode({
+    'type': 'FeatureCollection',
+    'features': [
+      for (final marker in widget.config.markers)
+        {
+          'type': 'Feature',
+          'geometry': {
+            'type': 'Point',
+            'coordinates': [marker.point.longitude, marker.point.latitude],
+          },
+          'properties': {'id': marker.id, 'color': _hex(marker.color)},
+        },
+    ],
+  });
+
+  static String _hex(Color color) => '#${(color.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
 
   void _updateUserLocation() {
     _map?.location.updateSettings(
@@ -83,6 +148,7 @@ class _MapboxMapViewState extends State<MapboxMapView> {
       viewport: _cameraAt(widget.config.initialCenter),
       viewportController: _viewport,
       onMapCreated: _onMapCreated,
+      onStyleLoadedListener: _onStyleLoaded,
     );
   }
 }

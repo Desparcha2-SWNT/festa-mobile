@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/application/session_controller.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
+import '../features/events/presentation/event_detail_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/location/application/location_consent_controller.dart';
 import '../features/location/presentation/location_consent_screen.dart';
@@ -39,6 +40,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: Routes.login, builder: (_, _) => const LoginScreen()),
       GoRoute(path: Routes.register, builder: (_, _) => const RegisterScreen()),
       GoRoute(path: Routes.locationConsent, builder: (_, _) => const LocationConsentScreen()),
+      // Fuera de la barra inferior: el detalle ocupa toda la pantalla, como en el Figma.
+      GoRoute(
+        path: Routes.eventDetailPattern,
+        builder: (_, state) => EventDetailScreen(eventId: state.pathParameters['id']!),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (_, _, navigationShell) => AppShell(navigationShell: navigationShell),
         branches: [

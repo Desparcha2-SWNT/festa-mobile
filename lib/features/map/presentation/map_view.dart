@@ -18,10 +18,26 @@ class MapCameraController extends ChangeNotifier {
   }
 }
 
+/// Punto que la vista dibuja sobre el mapa. [id] es lo que devuelve al tocarlo.
+@immutable
+class MapMarker {
+  const MapMarker({required this.id, required this.point, required this.color});
+
+  final String id;
+  final GeoPoint point;
+  final Color color;
+}
+
 /// Lo que la vista del mapa necesita para dibujarse.
 @immutable
 class MapViewConfig {
-  const MapViewConfig({required this.initialCenter, required this.showUserLocation, required this.camera});
+  const MapViewConfig({
+    required this.initialCenter,
+    required this.showUserLocation,
+    required this.camera,
+    this.markers = const [],
+    this.onMarkerTap,
+  });
 
   final GeoPoint initialCenter;
 
@@ -29,6 +45,8 @@ class MapViewConfig {
   final bool showUserLocation;
 
   final MapCameraController camera;
+  final List<MapMarker> markers;
+  final ValueChanged<String>? onMarkerTap;
 }
 
 typedef MapViewBuilder = Widget Function(MapViewConfig config);
