@@ -10,6 +10,7 @@ abstract final class ShellBranch {
   static const explore = 0;
   static const map = 1;
   static const myMerchant = 2;
+  static const myEvents = 3;
 }
 
 class _Tab {
@@ -35,6 +36,7 @@ class AppShell extends ConsumerWidget {
   ];
 
   static const _merchantTabs = [
+    _Tab(ShellBranch.myEvents, Icons.event_note_outlined, Icons.event_note, 'Mis eventos'),
     _Tab(ShellBranch.map, Icons.place_outlined, Icons.place, 'Mapa'),
     _Tab(ShellBranch.myMerchant, Icons.storefront_outlined, Icons.storefront, 'Mi comercio'),
   ];

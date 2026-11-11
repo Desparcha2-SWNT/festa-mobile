@@ -3,6 +3,7 @@ import 'package:festa/features/auth/data/auth_api.dart';
 import 'package:festa/features/auth/data/token_storage.dart';
 import 'package:festa/features/auth/domain/account.dart';
 import 'package:festa/features/auth/domain/auth_session.dart';
+import 'package:festa/features/events/data/events_api.dart';
 import 'package:festa/features/events/domain/event.dart';
 import 'package:festa/features/location/data/consents_api.dart';
 import 'package:festa/features/location/data/device_location.dart';
@@ -19,6 +20,8 @@ class MockAuthApi extends Mock implements AuthApi {}
 class MockConsentsApi extends Mock implements ConsentsApi {}
 
 class MockMerchantApi extends Mock implements MerchantApi {}
+
+class MockEventsApi extends Mock implements EventsApi {}
 
 class InMemoryTokenStorage implements TokenStorage {
   InMemoryTokenStorage([this.refreshToken]);

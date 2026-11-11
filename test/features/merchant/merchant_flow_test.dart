@@ -46,6 +46,7 @@ void main() {
           ),
           deviceLocationProvider.overrideWithValue(FakeDeviceLocation()),
           nearbyEventsProvider.overrideWith((ref) async => <Event>[]),
+          myEventsProvider.overrideWith((ref) async => <Event>[]),
           merchantApiProvider.overrideWithValue(merchantApi),
           mapViewBuilderProvider.overrideWithValue((config) {
             maps.add(config);
@@ -155,9 +156,13 @@ void main() {
     expect(find.text('Estamos revisando tu perfil'), findsOneWidget);
   });
 
-  testWidgets('un comercio verificado entra a «Mi comercio» con su barra de navegación', (tester) async {
+  testWidgets('un comercio verificado entra a sus eventos y ve su perfil en «Mi comercio»', (tester) async {
     when(() => merchantApi.mine()).thenAnswer((_) async => testMerchantProfile(MerchantStatus.verified));
     await pumpApp(tester);
+    expect(find.text('Aún no has publicado eventos.'), findsOneWidget);
+
+    await tester.tap(find.text('Mi comercio'));
+    await tester.pumpAndSettle();
 
     expect(find.text('Verificado'), findsOneWidget);
     expect(find.text(testMerchantDraft.address), findsOneWidget);
@@ -176,7 +181,7 @@ void main() {
     profile.complete(testMerchantProfile(MerchantStatus.verified));
     await tester.pumpAndSettle();
 
-    expect(find.text('Verificado'), findsOneWidget);
+    expect(find.text('Aún no has publicado eventos.'), findsOneWidget);
   });
 
   testWidgets('una persona no pasa por la verificación de comercio', (tester) async {

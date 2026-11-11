@@ -56,4 +56,11 @@ void main() {
   test('reporta error de red cuando no hay respuesta', () {
     expect(ApiException.fromDio(_dioError()).code, ApiException.networkError);
   });
+
+  test('entiende el error en texto plano de event-service', () {
+    final e = ApiException.fromDio(_dioError(status: 403, data: {'error': 'solo quien creó el evento puede editarlo'}));
+
+    expect(e.statusCode, 403);
+    expect(e.message, 'Solo quien creó el evento puede editarlo.');
+  });
 }
