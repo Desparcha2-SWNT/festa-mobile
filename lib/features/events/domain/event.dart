@@ -91,4 +91,7 @@ class Event {
   final EventStatus status;
 
   bool get isFree => priceCents == 0;
+
+  /// Solo un evento publicado que no ha terminado se puede editar o cancelar (regla de event-service).
+  bool get isEditable => status == EventStatus.published && endsAt.isAfter(DateTime.now());
 }

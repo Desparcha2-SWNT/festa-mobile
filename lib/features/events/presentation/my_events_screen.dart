@@ -136,7 +136,8 @@ class _MyEventCard extends StatelessWidget {
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => context.push(Routes.eventDetail(event.id)),
+        // Un evento vigente se edita; uno cancelado o terminado solo se puede ver.
+        onTap: () => context.push(event.isEditable ? Routes.editEvent(event.id) : Routes.eventDetail(event.id)),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
