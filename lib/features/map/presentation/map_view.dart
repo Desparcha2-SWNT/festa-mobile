@@ -8,12 +8,17 @@ import 'mapbox_map_view.dart';
 /// y en las pruebas se puede usar un mapa falso.
 class MapCameraController extends ChangeNotifier {
   GeoPoint? _target;
+  bool _closeUp = false;
 
   /// Último punto pedido; la vista lo lee cuando se le notifica.
   GeoPoint? get target => _target;
 
-  void flyTo(GeoPoint point) {
+  /// Si la cámara debe acercarse lo suficiente para ver un evento suelto (fuera de su clúster).
+  bool get closeUp => _closeUp;
+
+  void flyTo(GeoPoint point, {bool closeUp = false}) {
     _target = point;
+    _closeUp = closeUp;
     notifyListeners();
   }
 }
@@ -37,6 +42,7 @@ class MapViewConfig {
     required this.camera,
     this.markers = const [],
     this.onMarkerTap,
+    this.onMapTap,
   });
 
   final GeoPoint initialCenter;
@@ -47,6 +53,9 @@ class MapViewConfig {
   final MapCameraController camera;
   final List<MapMarker> markers;
   final ValueChanged<String>? onMarkerTap;
+
+  /// Toque en el mapa fuera de los marcadores, con el punto tocado (para elegir una ubicación).
+  final ValueChanged<GeoPoint>? onMapTap;
 }
 
 typedef MapViewBuilder = Widget Function(MapViewConfig config);

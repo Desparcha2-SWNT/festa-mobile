@@ -85,6 +85,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(map().camera.target, moved);
+      expect(map().camera.closeUp, isFalse, reason: 'recentrar vuelve al nivel de barrio, con clústeres');
     });
   });
 
@@ -100,7 +101,7 @@ void main() {
       expect(map().markers.last.color, EventCategory.deportivo.color);
     });
 
-    testWidgets('al tocar un marcador aparece su tarjeta y la cámara va hacia él', (tester) async {
+    testWidgets('al tocar un marcador aparece su tarjeta y la cámara se acerca a él', (tester) async {
       await pumpMap(tester, nearby: () async => [feria, partido]);
 
       map().onMarkerTap!('e2');
@@ -108,6 +109,7 @@ void main() {
 
       expect(find.text('Campeonato de fútbol'), findsOneWidget);
       expect(map().camera.target, partido.location);
+      expect(map().camera.closeUp, isTrue, reason: 'el evento elegido no debe quedar dentro de un clúster');
     });
 
     testWidgets('desde la tarjeta se abre el detalle del evento', (tester) async {

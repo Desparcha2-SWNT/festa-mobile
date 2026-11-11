@@ -20,6 +20,9 @@ final nearbyEventsProvider = FutureProvider<List<Event>>((ref) async {
   return ref.watch(eventsApiProvider).nearby(location.point, radiusKm: nearbyRadiusKm);
 }, retry: _noRetry);
 
+/// Eventos que creó el usuario («Mis eventos»). Se invalida al crear, editar o cancelar uno.
+final myEventsProvider = FutureProvider<List<Event>>((ref) => ref.watch(eventsApiProvider).mine(), retry: _noRetry);
+
 final eventDetailProvider = FutureProvider.family<Event, String>(
   (ref, id) => ref.watch(eventsApiProvider).byId(id),
   retry: _noRetry,

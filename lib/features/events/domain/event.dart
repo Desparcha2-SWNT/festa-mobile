@@ -13,6 +13,17 @@ enum EventCategory {
   static EventCategory fromApi(String value) => EventCategory.values.byName(value);
 }
 
+/// Estado del evento en event-service. Solo los publicados se muestran en el mapa.
+enum EventStatus {
+  published,
+  hidden,
+  cancelled,
+  expired;
+
+  static EventStatus fromApi(String? value) =>
+      EventStatus.values.where((status) => status.name == value).firstOrNull ?? EventStatus.published;
+}
+
 /// Evento publicado, tal como lo devuelve event-service (`toApi` en `src/events/repository.js`).
 class Event {
   const Event({
@@ -32,6 +43,7 @@ class Event {
     required this.priceCents,
     this.capacity,
     this.coverImageUrl,
+    this.status = EventStatus.published,
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
@@ -54,6 +66,7 @@ class Event {
       priceCents: json['priceCents'] as int? ?? 0,
       capacity: json['capacity'] as int?,
       coverImageUrl: json['coverImageUrl'] as String?,
+      status: EventStatus.fromApi(json['status'] as String?),
     );
   }
 
@@ -75,6 +88,10 @@ class Event {
   final int priceCents;
   final int? capacity;
   final String? coverImageUrl;
+  final EventStatus status;
 
   bool get isFree => priceCents == 0;
+
+  /// Solo un evento publicado que no ha terminado se puede editar o cancelar (regla de event-service).
+  bool get isEditable => status == EventStatus.published && endsAt.isAfter(DateTime.now());
 }

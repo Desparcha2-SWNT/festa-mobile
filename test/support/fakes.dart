@@ -3,6 +3,7 @@ import 'package:festa/features/auth/data/auth_api.dart';
 import 'package:festa/features/auth/data/token_storage.dart';
 import 'package:festa/features/auth/domain/account.dart';
 import 'package:festa/features/auth/domain/auth_session.dart';
+import 'package:festa/features/events/data/events_api.dart';
 import 'package:festa/features/events/domain/event.dart';
 import 'package:festa/features/location/data/consents_api.dart';
 import 'package:festa/features/location/data/device_location.dart';
@@ -10,11 +11,17 @@ import 'package:festa/features/location/data/location_consent_store.dart';
 import 'package:festa/features/location/domain/geo_point.dart';
 import 'package:festa/features/location/domain/location_consent.dart';
 import 'package:festa/features/location/domain/user_location.dart';
+import 'package:festa/features/merchant/data/merchant_api.dart';
+import 'package:festa/features/merchant/domain/merchant_profile.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockAuthApi extends Mock implements AuthApi {}
 
 class MockConsentsApi extends Mock implements ConsentsApi {}
+
+class MockMerchantApi extends Mock implements MerchantApi {}
+
+class MockEventsApi extends Mock implements EventsApi {}
 
 class InMemoryTokenStorage implements TokenStorage {
   InMemoryTokenStorage([this.refreshToken]);
@@ -33,8 +40,16 @@ class InMemoryTokenStorage implements TokenStorage {
 
 const testAccount = Account(id: 'a1', email: 'ana@escuelaing.edu.co', displayName: 'Ana', role: Role.user);
 
-AuthSession testSession([String suffix = '1']) =>
-    AuthSession(accessToken: 'access-$suffix', refreshToken: 'refresh-$suffix', account: testAccount);
+AuthSession testSession([String suffix = '1', Account account = testAccount]) =>
+    AuthSession(accessToken: 'access-$suffix', refreshToken: 'refresh-$suffix', account: account);
+
+/// Cuenta registrada como comercio (rol `merchant`); su perfil puede estar pendiente o verificado.
+const testMerchantAccount = Account(
+  id: 'm1',
+  email: 'mecanica@escuelaing.edu.co',
+  displayName: 'Programa de Ingeniería Mecánica',
+  role: Role.merchant,
+);
 
 const invalidRefresh = ApiException(
   code: 'INVALID_REFRESH_TOKEN',
@@ -109,3 +124,14 @@ Map<String, dynamic> eventJson({
 
 Event testEvent({String id = 'e1', String title = '10ª Feria del Autómata', String category = 'musical'}) =>
     Event.fromJson(eventJson(id: id, title: title, category: category));
+
+const testMerchantDraft = MerchantDraft(
+  businessName: 'Programa de Ingeniería Mecánica',
+  category: MerchantCategory.cultural,
+  address: 'Escuela Colombiana de Ingeniería, Bogotá',
+  location: GeoPoint(latitude: 4.7829, longitude: -74.0421),
+  description: 'Encuentro semestral del programa.',
+);
+
+MerchantProfile testMerchantProfile(MerchantStatus status, {String? rejectionReason}) =>
+    MerchantProfile(draft: testMerchantDraft, status: status, rejectionReason: rejectionReason);

@@ -15,7 +15,9 @@ import 'map_view.dart';
 ///
 /// - SCRUM-73: centrado en la ubicación del usuario, con botón para recentrar.
 /// - SCRUM-75: cada evento cercano es un marcador; al tocarlo aparece su tarjeta y desde ella el detalle.
-/// Los clústeres, el buscador y los filtros llegan con sus propias historias.
+/// - SCRUM-77: los eventos cercanos entre sí se agrupan en clústeres que se separan al acercar el mapa
+///   (lo resuelve `MapboxMapView`).
+/// El buscador y los filtros llegan con sus propias historias.
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
 
@@ -61,7 +63,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   @override
   Widget build(BuildContext context) {
     ref.listen(selectedEventProvider, (_, event) {
-      if (event != null) _camera.flyTo(event.location);
+      if (event != null) _camera.flyTo(event.location, closeUp: true);
     });
 
     final location = ref.watch(userLocationProvider).value;
