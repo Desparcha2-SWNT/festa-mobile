@@ -58,3 +58,9 @@ lib/
 - Al abrir la app se renueva la sesión con el refresh token, así que no hay que iniciar sesión cada vez.
 - El refresh **rota** en cada uso. Por eso las renovaciones simultáneas comparten una sola petición: si se usara dos veces, el servidor revocaría la sesión.
 - El logout borra la sesión del dispositivo aunque el servidor no responda.
+
+## Ubicación (RNF5, Ley 1581)
+
+- Después de iniciar sesión, la app pide el **consentimiento en la propia app** (`LocationConsentScreen`) antes de tocar la ubicación. El diálogo de permiso del sistema solo aparece si el usuario elige «Permitir ubicación».
+- La decisión se guarda por cuenta en el dispositivo y se registra en user-service (`POST /api/users/me/consents`). Si no hay conexión, se respeta igual y se vuelve a enviar al abrir la app.
+- `userLocationProvider` entrega la ubicación real del dispositivo. Si el usuario dijo «Ahora no», el sistema negó el permiso, el GPS está apagado o no hay señal, usa la ubicación del piloto (la Escuela) y dice el motivo, para que la UI lo informe (`LocationFallbackBanner`).

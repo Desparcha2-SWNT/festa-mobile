@@ -6,41 +6,60 @@ import '../features/auth/application/session_controller.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
 import '../features/home/presentation/home_screen.dart';
+import '../features/location/application/location_consent_controller.dart';
+import '../features/location/presentation/location_consent_screen.dart';
 import 'routes.dart';
 
 const _publicRoutes = {Routes.login, Routes.register};
 
-/// Router de la app. Redirige según la sesión: sin sesión solo se puede ver el login y el
-/// registro; con sesión, esas pantallas llevan al inicio.
+/// Router de la app. Redirige según la sesión y el consentimiento de ubicación:
+/// - sin sesión solo se puede ver el login y el registro;
+/// - con sesión pero sin decidir sobre la ubicación, se pide el consentimiento (RNF5);
+/// - con ambas cosas resueltas, el login, el registro y el consentimiento llevan al inicio.
 final routerProvider = Provider<GoRouter>((ref) {
-  final sessionChanged = ValueNotifier<AsyncValue<Object?>>(const AsyncLoading());
+  final refresh = ValueNotifier(0);
+  void notify(Object? _, Object? _) => refresh.value++;
   ref
-    ..listen(sessionControllerProvider, (_, next) => sessionChanged.value = next, fireImmediately: true)
-    ..onDispose(sessionChanged.dispose);
+    ..listen(sessionControllerProvider, notify)
+    ..listen(locationConsentControllerProvider, notify)
+    ..onDispose(refresh.dispose);
 
   final router = GoRouter(
     initialLocation: Routes.splash,
-    refreshListenable: sessionChanged,
-    redirect: (context, state) {
-      final session = sessionChanged.value;
-      final location = state.matchedLocation;
-      if (session.isLoading && !session.hasValue) return Routes.splash;
-
-      final loggedIn = session.value != null;
-      if (!loggedIn) return _publicRoutes.contains(location) ? null : Routes.login;
-      if (_publicRoutes.contains(location) || location == Routes.splash) return Routes.home;
-      return null;
-    },
+    refreshListenable: refresh,
+    redirect: (context, state) => _redirect(
+      location: state.matchedLocation,
+      session: ref.read(sessionControllerProvider),
+      locationConsent: ref.read(locationConsentControllerProvider),
+    ),
     routes: [
       GoRoute(path: Routes.splash, builder: (_, _) => const _SplashScreen()),
       GoRoute(path: Routes.login, builder: (_, _) => const LoginScreen()),
       GoRoute(path: Routes.register, builder: (_, _) => const RegisterScreen()),
+      GoRoute(path: Routes.locationConsent, builder: (_, _) => const LocationConsentScreen()),
       GoRoute(path: Routes.home, builder: (_, _) => const HomeScreen()),
     ],
   );
   ref.onDispose(router.dispose);
   return router;
 });
+
+String? _redirect({
+  required String location,
+  required AsyncValue<Object?> session,
+  required AsyncValue<Object?> locationConsent,
+}) {
+  if (session.isLoading && !session.hasValue) return Routes.splash;
+
+  final loggedIn = session.value != null;
+  if (!loggedIn) return _publicRoutes.contains(location) ? null : Routes.login;
+
+  if (!locationConsent.hasValue) return Routes.splash;
+  if (locationConsent.value == null) return Routes.locationConsent;
+
+  const entryRoutes = {..._publicRoutes, Routes.splash, Routes.locationConsent};
+  return entryRoutes.contains(location) ? Routes.home : null;
+}
 
 class _SplashScreen extends StatelessWidget {
   const _SplashScreen();

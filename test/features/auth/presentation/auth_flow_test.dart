@@ -2,6 +2,8 @@ import 'package:festa/app/festa_app.dart';
 import 'package:festa/core/network/api_exception.dart';
 import 'package:festa/features/auth/application/auth_providers.dart';
 import 'package:festa/features/auth/domain/account.dart';
+import 'package:festa/features/location/application/location_providers.dart';
+import 'package:festa/features/location/domain/location_consent.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,7 +25,16 @@ void main() {
   Future<void> pumpApp(WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [authApiProvider.overrideWithValue(api), tokenStorageProvider.overrideWithValue(storage)],
+        overrides: [
+          authApiProvider.overrideWithValue(api),
+          tokenStorageProvider.overrideWithValue(storage),
+          // La cuenta de prueba ya decidió sobre su ubicación: estas pruebas son del flujo de auth.
+          locationConsentStoreProvider.overrideWithValue(
+            InMemoryLocationConsentStore()
+              ..consents[testAccount.id] = const StoredLocationConsent(decision: LocationConsent.granted, synced: true),
+          ),
+          deviceLocationProvider.overrideWithValue(FakeDeviceLocation()),
+        ],
         child: const FestaApp(),
       ),
     );
