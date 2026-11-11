@@ -74,6 +74,9 @@ class _MapboxMapViewState extends State<MapboxMapView> {
 
   void _onMapCreated(MapboxMap map) {
     _map = map;
+    // El viewport inicial no siempre se aplica (por ejemplo, en el mapa pequeño de un formulario
+    // dentro de una lista): se centra explícitamente para no arrancar mostrando el globo.
+    map.setCamera(CameraOptions(center: _pointAt(widget.config.initialCenter), zoom: _zoom));
     _updateUserLocation();
     // La barra de escala no está en el diseño y se monta sobre la barra de estado.
     map.scaleBar.updateSettings(ScaleBarSettings(enabled: false));
@@ -204,10 +207,10 @@ class _MapboxMapViewState extends State<MapboxMapView> {
     );
   }
 
-  static CameraViewportState _cameraAt(GeoPoint point, {double zoom = _zoom}) => CameraViewportState(
-    center: Point(coordinates: Position(point.longitude, point.latitude)),
-    zoom: zoom,
-  );
+  static Point _pointAt(GeoPoint point) => Point(coordinates: Position(point.longitude, point.latitude));
+
+  static CameraViewportState _cameraAt(GeoPoint point, {double zoom = _zoom}) =>
+      CameraViewportState(center: _pointAt(point), zoom: zoom);
 
   @override
   Widget build(BuildContext context) {

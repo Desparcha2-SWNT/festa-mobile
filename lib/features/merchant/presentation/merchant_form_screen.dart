@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/routes.dart';
+import '../../../app/theme.dart';
 import '../../../core/network/api_exception.dart';
 import '../../auth/application/session_controller.dart';
 import '../../location/domain/geo_point.dart';
@@ -242,18 +243,17 @@ class _InfoBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return DecoratedBox(
-      decoration: BoxDecoration(color: colors.secondaryContainer, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: FestaTheme.infoSurface, borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.info_outline, size: 20, color: colors.onSecondaryContainer),
+            const Icon(Icons.info_outline, size: 20, color: FestaTheme.ink),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(text, style: TextStyle(color: colors.onSecondaryContainer)),
+              child: Text(text, style: const TextStyle(color: FestaTheme.ink)),
             ),
           ],
         ),
