@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/routes.dart';
+import '../../../app/theme.dart';
 import '../../../core/network/api_exception.dart';
 import '../application/events_providers.dart';
 import '../domain/event.dart';
@@ -169,27 +170,35 @@ class _CancelDialogState extends State<_CancelDialog> {
     title: const Text('¿Cancelar este evento?'),
     content: Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Text('Avisaremos a las personas que confirmaron. Esta acción no se puede deshacer.'),
         const SizedBox(height: 16),
         TextField(
           key: const Key('cancelEvent.reason'),
           controller: _reason,
+          minLines: 1,
+          maxLines: 3,
           maxLength: 500,
+          onChanged: (_) {
+            if (_showError) setState(() => _showError = false);
+          },
           decoration: InputDecoration(
             labelText: 'Motivo (lo verán los asistentes)',
-            errorText: _showError ? 'Escribe el motivo de la cancelación.' : null,
+            errorText: _showError ? 'Escribe el motivo.' : null,
           ),
         ),
+        const SizedBox(height: 16),
+        // Como en el Figma «24b»: la acción destructiva en tinta y, debajo, la que no cambia nada.
+        FilledButton(
+          key: const Key('cancelEvent.confirm'),
+          style: FilledButton.styleFrom(backgroundColor: FestaTheme.ink, foregroundColor: Colors.white),
+          onPressed: _confirm,
+          child: const Text('Sí, cancelar evento'),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Mantener evento')),
       ],
     ),
-    actions: [
-      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Mantener evento')),
-      FilledButton(
-        key: const Key('cancelEvent.confirm'),
-        onPressed: _confirm,
-        child: const Text('Sí, cancelar evento'),
-      ),
-    ],
   );
 }

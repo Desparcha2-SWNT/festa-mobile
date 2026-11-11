@@ -82,4 +82,11 @@ void main() {
 
     expect(find.text('10ª Feria del Autómata'), findsOneWidget);
   });
+
+  testWidgets('un evento cancelado lo avisa y ya no ofrece verlo en el mapa', (tester) async {
+    await pumpDetail(tester, () async => Event.fromJson({...eventJson(), 'status': 'cancelled'}));
+
+    expect(find.text('El organizador canceló este evento.'), findsOneWidget);
+    expect(find.byKey(const Key('eventDetail.showOnMap')), findsNothing);
+  });
 }

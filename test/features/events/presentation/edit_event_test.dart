@@ -122,7 +122,7 @@ void main() {
     expect(find.text('¿Cancelar este evento?'), findsOneWidget);
 
     await tap(tester, find.byKey(const Key('cancelEvent.confirm')));
-    expect(find.text('Escribe el motivo de la cancelación.'), findsOneWidget);
+    expect(find.text('Escribe el motivo.'), findsOneWidget);
     verifyNever(() => api.cancel(any(), reason: any(named: 'reason')));
 
     await tester.enterText(find.byKey(const Key('cancelEvent.reason')), 'Lluvia');
