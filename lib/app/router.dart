@@ -8,6 +8,8 @@ import '../features/auth/presentation/register_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/location/application/location_consent_controller.dart';
 import '../features/location/presentation/location_consent_screen.dart';
+import '../features/map/presentation/map_screen.dart';
+import 'app_shell.dart';
 import 'routes.dart';
 
 const _publicRoutes = {Routes.login, Routes.register};
@@ -37,7 +39,17 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: Routes.login, builder: (_, _) => const LoginScreen()),
       GoRoute(path: Routes.register, builder: (_, _) => const RegisterScreen()),
       GoRoute(path: Routes.locationConsent, builder: (_, _) => const LocationConsentScreen()),
-      GoRoute(path: Routes.home, builder: (_, _) => const HomeScreen()),
+      StatefulShellRoute.indexedStack(
+        builder: (_, _, navigationShell) => AppShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [GoRoute(path: Routes.home, builder: (_, _) => const HomeScreen())],
+          ),
+          StatefulShellBranch(
+            routes: [GoRoute(path: Routes.map, builder: (_, _) => const MapScreen())],
+          ),
+        ],
+      ),
     ],
   );
   ref.onDispose(router.dispose);

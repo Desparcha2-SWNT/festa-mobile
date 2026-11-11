@@ -4,4 +4,5 @@ abstract final class Routes {
   static const register = '/register';
   static const locationConsent = '/location-consent';
   static const home = '/';
+  static const map = '/map';
 }
