@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../location/domain/geo_point.dart';
 import '../../../map/presentation/widgets/location_picker_field.dart';
@@ -222,6 +223,7 @@ class _EventFormState extends State<EventForm> {
                   key: const Key('eventForm.capacity'),
                   controller: _capacity,
                   keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   validator: (value) {
                     final text = (value ?? '').trim();
                     if (text.isEmpty) return null;
