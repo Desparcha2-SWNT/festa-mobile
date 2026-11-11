@@ -88,6 +88,13 @@ class _MapboxMapViewState extends State<MapboxMapView> {
       TapInteraction(FeaturesetDescriptor(layerId: _clustersLayerId), _expandCluster),
       interactionID: 'tap_event_clusters',
     );
+    map.addInteraction(
+      TapInteraction.onMap((context) {
+        final point = context.point.coordinates;
+        widget.config.onMapTap?.call(GeoPoint(latitude: point.lat.toDouble(), longitude: point.lng.toDouble()));
+      }),
+      interactionID: 'tap_map',
+    );
   }
 
   /// Al tocar un clúster el mapa se acerca justo hasta donde sus eventos se separan.

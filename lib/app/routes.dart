@@ -6,6 +6,9 @@ abstract final class Routes {
   static const home = '/';
   static const map = '/map';
   static const eventDetailPattern = '/events/:id';
+  static const myMerchant = '/merchant';
+  static const merchantForm = '/merchant/form';
+  static const merchantStatus = '/merchant/status';
 
   static String eventDetail(String id) => '/events/$id';
 }

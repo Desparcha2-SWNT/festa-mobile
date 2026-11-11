@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/application/session_controller.dart';
+import '../features/auth/domain/account.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
 import '../features/events/presentation/event_detail_screen.dart';
@@ -10,21 +11,28 @@ import '../features/home/presentation/home_screen.dart';
 import '../features/location/application/location_consent_controller.dart';
 import '../features/location/presentation/location_consent_screen.dart';
 import '../features/map/presentation/map_screen.dart';
+import '../features/merchant/application/merchant_controller.dart';
+import '../features/merchant/domain/merchant_profile.dart';
+import '../features/merchant/presentation/merchant_form_screen.dart';
+import '../features/merchant/presentation/merchant_status_screen.dart';
+import '../features/merchant/presentation/my_merchant_screen.dart';
 import 'app_shell.dart';
 import 'routes.dart';
 
 const _publicRoutes = {Routes.login, Routes.register};
 
-/// Router de la app. Redirige según la sesión y el consentimiento de ubicación:
+/// Router de la app. Redirige según la sesión, el comercio y el consentimiento de ubicación:
 /// - sin sesión solo se puede ver el login y el registro;
+/// - una cuenta de comercio no entra a la app hasta que el equipo Festa verifica su perfil (RF3);
 /// - con sesión pero sin decidir sobre la ubicación, se pide el consentimiento (RNF5);
-/// - con ambas cosas resueltas, el login, el registro y el consentimiento llevan al inicio.
+/// - con todo resuelto, las pantallas de entrada llevan al inicio de cada rol.
 final routerProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier(0);
   void notify(Object? _, Object? _) => refresh.value++;
   ref
     ..listen(sessionControllerProvider, notify)
     ..listen(locationConsentControllerProvider, notify)
+    ..listen(merchantControllerProvider, notify)
     ..onDispose(refresh.dispose);
 
   final router = GoRouter(
@@ -34,12 +42,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       location: state.matchedLocation,
       session: ref.read(sessionControllerProvider),
       locationConsent: ref.read(locationConsentControllerProvider),
+      merchant: ref.read(merchantControllerProvider),
     ),
     routes: [
       GoRoute(path: Routes.splash, builder: (_, _) => const _SplashScreen()),
       GoRoute(path: Routes.login, builder: (_, _) => const LoginScreen()),
       GoRoute(path: Routes.register, builder: (_, _) => const RegisterScreen()),
       GoRoute(path: Routes.locationConsent, builder: (_, _) => const LocationConsentScreen()),
+      GoRoute(path: Routes.merchantForm, builder: (_, _) => const MerchantFormScreen()),
+      GoRoute(path: Routes.merchantStatus, builder: (_, _) => const MerchantStatusScreen()),
       // Fuera de la barra inferior: el detalle ocupa toda la pantalla, como en el Figma.
       GoRoute(
         path: Routes.eventDetailPattern,
@@ -54,6 +65,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [GoRoute(path: Routes.map, builder: (_, _) => const MapScreen())],
           ),
+          StatefulShellBranch(
+            routes: [GoRoute(path: Routes.myMerchant, builder: (_, _) => const MyMerchantScreen())],
+          ),
         ],
       ),
     ],
@@ -64,19 +78,40 @@ final routerProvider = Provider<GoRouter>((ref) {
 
 String? _redirect({
   required String location,
-  required AsyncValue<Object?> session,
+  required AsyncValue<Account?> session,
   required AsyncValue<Object?> locationConsent,
+  required AsyncValue<MerchantProfile?> merchant,
 }) {
   if (session.isLoading && !session.hasValue) return Routes.splash;
 
-  final loggedIn = session.value != null;
-  if (!loggedIn) return _publicRoutes.contains(location) ? null : Routes.login;
+  final account = session.value;
+  if (account == null) return _publicRoutes.contains(location) ? null : Routes.login;
+
+  if (account.role == Role.merchant) {
+    final gate = _merchantGate(location, merchant);
+    if (gate != null) return gate == location ? null : gate;
+  }
 
   if (!locationConsent.hasValue) return Routes.splash;
   if (locationConsent.value == null) return Routes.locationConsent;
 
-  const entryRoutes = {..._publicRoutes, Routes.splash, Routes.locationConsent};
-  return entryRoutes.contains(location) ? Routes.home : null;
+  const entryRoutes = {..._publicRoutes, Routes.splash, Routes.locationConsent, Routes.merchantStatus};
+  if (!entryRoutes.contains(location)) return null;
+  return account.role == Role.merchant ? Routes.myMerchant : Routes.home;
+}
+
+/// A dónde debe ir una cuenta de comercio mientras su perfil no está verificado, o `null` si ya
+/// puede usar la app. El formulario siempre está permitido (para corregir o editar el perfil).
+String? _merchantGate(String location, AsyncValue<MerchantProfile?> merchant) {
+  if (merchant.isLoading && !merchant.hasValue) return Routes.splash;
+  // La pantalla de estado muestra el error con un botón para reintentar.
+  if (merchant.hasError && !merchant.hasValue) return Routes.merchantStatus;
+
+  final profile = merchant.value;
+  if (profile == null) return Routes.merchantForm;
+  if (location == Routes.merchantForm) return location;
+  if (profile.status == MerchantStatus.verified) return null;
+  return Routes.merchantStatus;
 }
 
 class _SplashScreen extends StatelessWidget {

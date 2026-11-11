@@ -84,3 +84,14 @@ lib/
 - **Pendiente de SCRUM-74:** `EventsApi.nearby` usa el contrato propuesto
   `GET /api/events/nearby?lat=&lng=&radiusKm=` → `{"items": [Evento]}`. Hasta que event-service lo publique, el mapa
   muestra el aviso «No pudimos cargar los eventos».
+
+## Comercio (RF3)
+
+- Una cuenta registrada como «Comercio» no entra a la app hasta que el equipo Festa verifica su perfil. El router la
+  lleva al formulario si aún no lo envió (`MerchantFormScreen`, pasos 2 y 3 del registro en el Figma) y después a
+  `MerchantStatusScreen`: «Estamos revisando tu perfil» o, si lo rechazaron, el motivo y «Corregir y reenviar».
+- El perfil se guarda en user-service (`/api/users/me/merchant`): `POST` la primera vez y `PATCH` para corregirlo, que
+  lo devuelve a pendiente. Ya verificado, el comercio ve las pestañas Mapa y «Mi comercio».
+- La ubicación se elige tocando un mapa pequeño (`LocationPickerField`), así que se guardan las coordenadas exactas sin
+  geocodificar la dirección escrita.
+- El teléfono y el NIT del Figma están marcados como «Propuesta»: user-service todavía no los recibe.
