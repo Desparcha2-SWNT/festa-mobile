@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
 
-/// Estructura común de las pantallas de registro e inicio de sesión: título, mensaje de
-/// error general y el formulario centrado con ancho máximo (se ve bien en tablet y web).
+import '../../../../app/theme.dart';
+
+/// Estructura común de las pantallas de acceso (login, registro).
+/// Muestra la corona de Festa, título grande, subtítulo y el formulario centrado.
 class AuthScaffold extends StatelessWidget {
-  const AuthScaffold({super.key, required this.title, required this.subtitle, required this.child, this.errorMessage});
+  const AuthScaffold({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.child,
+    this.errorMessage,
+  });
 
   final String title;
   final String subtitle;
@@ -14,20 +22,37 @@ class AuthScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(title, style: theme.textTheme.headlineMedium),
+                  // Corona de Festa
+                  const _FestaCrown(),
+                  const SizedBox(height: 20),
+                  Text(
+                    title,
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      color: FestaTheme.ink,
+                      fontWeight: FontWeight.w700,
+                      height: 1.2,
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  Text(subtitle, style: theme.textTheme.bodyLarge),
-                  const SizedBox(height: 24),
-                  if (errorMessage != null) ...[_ErrorBanner(message: errorMessage!), const SizedBox(height: 16)],
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.bodyLarge?.copyWith(color: const Color(0xFF555555)),
+                  ),
+                  const SizedBox(height: 28),
+                  if (errorMessage != null) ...[
+                    _ErrorBanner(message: errorMessage!),
+                    const SizedBox(height: 16),
+                  ],
                   child,
                 ],
               ),
@@ -39,6 +64,20 @@ class AuthScaffold extends StatelessWidget {
   }
 }
 
+/// Ícono de corona rosa de Festa (logo real desde assets).
+class _FestaCrown extends StatelessWidget {
+  const _FestaCrown();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Image(
+      image: AssetImage('assets/images/logo_festa.png'),
+      width: 72,
+      semanticLabel: 'Festa',
+    );
+  }
+}
+
 class _ErrorBanner extends StatelessWidget {
   const _ErrorBanner({required this.message});
 
@@ -46,19 +85,25 @@ class _ErrorBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return Semantics(
       liveRegion: true,
       child: DecoratedBox(
-        decoration: BoxDecoration(color: colors.errorContainer, borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF0F0),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFFFCDD2)),
+        ),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(
             children: [
-              Icon(Icons.error_outline, color: colors.onErrorContainer),
-              const SizedBox(width: 12),
+              const Icon(Icons.error_outline, color: Color(0xFFD32F2F), size: 20),
+              const SizedBox(width: 10),
               Expanded(
-                child: Text(message, style: TextStyle(color: colors.onErrorContainer)),
+                child: Text(
+                  message,
+                  style: const TextStyle(color: Color(0xFFD32F2F), fontSize: 14),
+                ),
               ),
             ],
           ),

@@ -27,6 +27,7 @@ void main() {
         child: const FestaApp(),
       ),
     );
+    await tester.pump(const Duration(milliseconds: 100));
     await tester.pumpAndSettle();
   }
 
@@ -40,7 +41,7 @@ void main() {
   testWidgets('sin sesión guardada abre el login', (tester) async {
     await pumpApp(tester);
 
-    expect(find.text('Inicia sesión'), findsOneWidget);
+    expect(find.text('Iniciar sesión'), findsOneWidget);
   });
 
   testWidgets('con sesión guardada entra directo al inicio', (tester) async {
@@ -55,6 +56,7 @@ void main() {
   testWidgets('el login valida el formulario antes de llamar al servidor', (tester) async {
     await pumpApp(tester);
 
+    await tester.ensureVisible(find.byKey(const Key('login.submit')));
     await tester.tap(find.byKey(const Key('login.submit')));
     await tester.pump();
 
@@ -70,6 +72,7 @@ void main() {
   testWidgets('tras un envío fallido los errores se actualizan al escribir', (tester) async {
     await pumpApp(tester);
 
+    await tester.ensureVisible(find.byKey(const Key('login.submit')));
     await tester.tap(find.byKey(const Key('login.submit')));
     await tester.pump();
     expect(find.text('El correo es obligatorio.'), findsOneWidget);
@@ -91,11 +94,12 @@ void main() {
 
     await tester.enterText(find.byKey(const Key('login.email')), 'ana@escuelaing.edu.co');
     await tester.enterText(find.byKey(const Key('login.password')), 'otra1234');
+    await tester.ensureVisible(find.byKey(const Key('login.submit')));
     await tester.tap(find.byKey(const Key('login.submit')));
     await tester.pumpAndSettle();
 
     expect(find.text('Correo o contraseña incorrectos.'), findsOneWidget);
-    expect(find.text('Inicia sesión'), findsOneWidget);
+    expect(find.text('Iniciar sesión'), findsOneWidget);
   });
 
   testWidgets('login y logout completos', (tester) async {
@@ -105,6 +109,7 @@ void main() {
 
     await tester.enterText(find.byKey(const Key('login.email')), 'ana@escuelaing.edu.co');
     await tester.enterText(find.byKey(const Key('login.password')), 'festa123');
+    await tester.ensureVisible(find.byKey(const Key('login.submit')));
     await tester.tap(find.byKey(const Key('login.submit')));
     await tester.pumpAndSettle();
     expect(find.text('Hola, Ana'), findsOneWidget);
@@ -116,7 +121,7 @@ void main() {
 
     verify(() => api.logout('refresh-1')).called(1);
     expect(storage.refreshToken, isNull);
-    expect(find.text('Inicia sesión'), findsOneWidget);
+    expect(find.text('Iniciar sesión'), findsOneWidget);
   });
 
   testWidgets('el registro muestra que el correo ya existe', (tester) async {
@@ -126,12 +131,12 @@ void main() {
         password: any(named: 'password'),
         displayName: any(named: 'displayName'),
         accountType: any(named: 'accountType'),
-        acceptedPrivacyPolicy: any(named: 'acceptedPrivacyPolicy'),
       ),
     ).thenThrow(
       const ApiException(code: 'EMAIL_TAKEN', message: 'Ya existe una cuenta con ese correo.', statusCode: 409),
     );
     await pumpApp(tester);
+    await tester.ensureVisible(find.text('¿No tienes cuenta? Regístrate'));
     await tester.tap(find.text('¿No tienes cuenta? Regístrate'));
     await tester.pumpAndSettle();
 
@@ -145,6 +150,7 @@ void main() {
 
   testWidgets('el registro no se envía si no se autoriza el tratamiento de datos', (tester) async {
     await pumpApp(tester);
+    await tester.ensureVisible(find.text('¿No tienes cuenta? Regístrate'));
     await tester.tap(find.text('¿No tienes cuenta? Regístrate'));
     await tester.pumpAndSettle();
 
@@ -160,7 +166,6 @@ void main() {
         password: any(named: 'password'),
         displayName: any(named: 'displayName'),
         accountType: any(named: 'accountType'),
-        acceptedPrivacyPolicy: any(named: 'acceptedPrivacyPolicy'),
       ),
     );
   });
@@ -172,15 +177,24 @@ void main() {
         password: any(named: 'password'),
         displayName: any(named: 'displayName'),
         accountType: any(named: 'accountType'),
-        acceptedPrivacyPolicy: any(named: 'acceptedPrivacyPolicy'),
       ),
     ).thenAnswer((_) async => testSession());
     await pumpApp(tester);
+    await tester.ensureVisible(find.text('¿No tienes cuenta? Regístrate'));
     await tester.tap(find.text('¿No tienes cuenta? Regístrate'));
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.text('Comercio'));
     await tester.tap(find.text('Comercio'));
     await _fillRegister(tester);
+    await tester.ensureVisible(find.byKey(const Key('register.next1')));
+    await tester.tap(find.byKey(const Key('register.next1')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('register.address')), 'Calle 205 # 59-00, Bogotá');
+    await tester.tap(find.byKey(const Key('register.category.Cultural')));
+    await tester.ensureVisible(find.byKey(const Key('register.next2')));
+    await tester.tap(find.byKey(const Key('register.next2')));
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const Key('register.submit')));
     await tester.tap(find.byKey(const Key('register.submit')));
     await tester.pumpAndSettle();
@@ -191,7 +205,6 @@ void main() {
         password: 'festa123',
         displayName: 'Ana',
         accountType: AccountType.merchant,
-        acceptedPrivacyPolicy: true,
       ),
     ).called(1);
     expect(find.text('Hola, Ana'), findsOneWidget);

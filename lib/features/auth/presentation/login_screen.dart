@@ -57,10 +57,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // El error de credenciales se muestra sobre el campo de correo (como en el Figma).
+    final credentialsError = _error != null ? 'Correo o contraseña incorrectos.' : null;
+
     return AuthScaffold(
-      title: 'Inicia sesión',
-      subtitle: 'Encuentra los planes que hay cerca de ti.',
-      errorMessage: _error?.message,
+      title: 'Qué bueno verte\nde nuevo',
+      subtitle: 'Entra para encontrar el plan de hoy.',
       child: Form(
         key: _formKey,
         autovalidateMode: _autovalidateMode,
@@ -68,6 +70,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Banner de error de credenciales (justo encima del campo correo, como Figma)
+              if (credentialsError != null) ...[
+                _CredentialsError(message: credentialsError),
+                const SizedBox(height: 12),
+              ],
               TextFormField(
                 key: const Key('login.email'),
                 controller: _email,
@@ -76,7 +83,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 autofillHints: const [AutofillHints.email],
                 textInputAction: TextInputAction.next,
                 validator: AuthValidators.email,
-                decoration: InputDecoration(labelText: 'Correo electrónico', errorText: _error?.fieldErrors['email']),
+                decoration: const InputDecoration(labelText: 'Correo'),
               ),
               const SizedBox(height: 16),
               PasswordField(
@@ -84,19 +91,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 controller: _password,
                 label: 'Contraseña',
                 validator: AuthValidators.requiredPassword,
-                errorText: _error?.fieldErrors['password'],
                 textInputAction: TextInputAction.done,
                 onFieldSubmitted: (_) => _submit(),
               ),
               const SizedBox(height: 24),
+              // Botón principal — muestra "Iniciando sesión..." cuando carga (como Figma 2c)
               FilledButton(
                 key: const Key('login.submit'),
                 onPressed: _submitting ? null : _submit,
                 child: _submitting
-                    ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const Text('Iniciando sesión...')
                     : const Text('Iniciar sesión'),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 20),
+              // Divisor con círculo (Figma: separador entre botones)
+              const _OrDivider(),
+              const SizedBox(height: 20),
+              // Botón de Google (el backend soporta POST /auth/google; la app aún no implementa el flujo)
+              OutlinedButton.icon(
+                key: const Key('login.google'),
+                onPressed: _submitting ? null : () {
+                  // TODO(SCRUM-?): implementar flujo OAuth de Google en la app
+                },
+                icon: const _GoogleLogo(),
+                label: const Text('Continuar con Google'),
+              ),
+              const SizedBox(height: 16),
               TextButton(
                 onPressed: _submitting ? null : () => context.go(Routes.register),
                 child: const Text('¿No tienes cuenta? Regístrate'),
@@ -107,4 +127,103 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
     );
   }
+}
+
+/// Banner de error de credenciales (rojo, con ícono, encima del campo correo).
+class _CredentialsError extends StatelessWidget {
+  const _CredentialsError({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF0F0),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFFFCDD2)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Color(0xFFD32F2F), size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(color: Color(0xFFD32F2F), fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Divisor circular entre los dos botones (Figma: un círculo ○ centrado).
+class _OrDivider extends StatelessWidget {
+  const _OrDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      children: [
+        Expanded(child: Divider()),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12),
+          child: Text('○', style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 12)),
+        ),
+        Expanded(child: Divider()),
+      ],
+    );
+  }
+}
+
+/// Logo de Google en SVG simplificado (sin dependencia externa).
+class _GoogleLogo extends StatelessWidget {
+  const _GoogleLogo();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 20,
+      height: 20,
+      child: CustomPaint(painter: _GoogleLogoPainter()),
+    );
+  }
+}
+
+class _GoogleLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final r = size.width / 2;
+
+    // Arco rojo (superior)
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: r),
+      -1.57, 3.14, false,
+      Paint()..color = const Color(0xFFEA4335)..style = PaintingStyle.stroke..strokeWidth = size.width * 0.18,
+    );
+    // Arco verde (inferior izq)
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: r),
+      1.57, 1.57, false,
+      Paint()..color = const Color(0xFF34A853)..style = PaintingStyle.stroke..strokeWidth = size.width * 0.18,
+    );
+    // Arco amarillo (inferior der)
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: r),
+      0, 1.57, false,
+      Paint()..color = const Color(0xFFFBBC05)..style = PaintingStyle.stroke..strokeWidth = size.width * 0.18,
+    );
+    // Línea azul horizontal (ala derecha)
+    final paint = Paint()..color = const Color(0xFF4285F4)..strokeWidth = size.width * 0.18..strokeCap = StrokeCap.round;
+    canvas.drawLine(center, Offset(size.width, center.dy), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
