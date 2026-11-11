@@ -11,6 +11,9 @@ abstract final class FestaTheme {
   static const ink = Color(0xFF111111);
   static const success = Color(0xFF1E9E5A);
 
+  /// Fondo de los avisos informativos («IA / Festi» en el Figma).
+  static const infoSurface = Color(0xFFD9CCFF);
+
   static ThemeData light() => _build(
     ColorScheme.fromSeed(seedColor: brand).copyWith(
       primary: brand,
