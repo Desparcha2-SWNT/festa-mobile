@@ -78,6 +78,9 @@ lib/
 - Los eventos cercanos (`nearbyEventsProvider`, radio de 3 km) se dibujan como círculos del color de su categoría en
   una fuente GeoJSON, para que SCRUM-77 pueda agruparlos en clústeres en la misma fuente. Al tocar uno aparece su
   tarjeta, y desde ella se abre `EventDetailScreen` (`/events/:id`, que lee `GET /api/events/:id`).
+- Clústeres (SCRUM-77): la fuente agrupa los eventos que quedan a menos de 50 px entre sí hasta el zoom 14. El círculo
+  magenta muestra cuántos eventos agrupa, y al tocarlo el mapa se acerca justo hasta donde se separan. El mapa abre en
+  zoom 13 (barrio, con clústeres) y al elegir un evento se acerca a 15, para que no quede dentro de un clúster.
 - **Pendiente de SCRUM-74:** `EventsApi.nearby` usa el contrato propuesto
   `GET /api/events/nearby?lat=&lng=&radiusKm=` → `{"items": [Evento]}`. Hasta que event-service lo publique, el mapa
   muestra el aviso «No pudimos cargar los eventos».

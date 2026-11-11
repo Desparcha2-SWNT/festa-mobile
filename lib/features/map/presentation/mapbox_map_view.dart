@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
@@ -7,6 +5,7 @@ import '../../../app/theme.dart';
 import '../../../core/config/app_config.dart';
 import '../../location/domain/geo_point.dart';
 import 'map_view.dart';
+import 'markers_geojson.dart';
 
 /// Mapa de Mapbox (SCRUM-73). Es la única pieza de la app que conoce el SDK.
 class MapboxMapView extends StatefulWidget {
@@ -19,13 +18,22 @@ class MapboxMapView extends StatefulWidget {
 }
 
 class _MapboxMapViewState extends State<MapboxMapView> {
-  /// Nivel de barrio: se ven las calles y los lugares alrededor del usuario.
-  static const _zoom = 14.0;
+  /// Nivel de barrio: se ven las calles alrededor del usuario y los eventos agrupados por zona.
+  static const _zoom = 13.0;
 
-  // Los eventos van en una fuente GeoJSON con una capa de círculos (y no como anotaciones) para
-  // poder agruparlos en clústeres por zona (SCRUM-77) activando `cluster` en la misma fuente.
+  // SCRUM-77: los eventos cercanos entre sí se agrupan en un clúster con el número de eventos.
+  // Por encima de _clusterMaxZoom siempre se ven sueltos, así que _closeUpZoom, que se usa al
+  // elegir un evento, queda por encima para que el evento no quede escondido en su clúster.
+  static const _clusterMaxZoom = 14.0;
+  static const _closeUpZoom = 15.0;
+
+  /// Radio en píxeles dentro del cual los puntos se agrupan.
+  static const _clusterRadius = 50.0;
+
   static const _markersSourceId = 'festa-events';
   static const _markersLayerId = 'festa-events-circles';
+  static const _clustersLayerId = 'festa-events-clusters';
+  static const _clusterCountLayerId = 'festa-events-cluster-count';
 
   final _viewport = ViewportController();
   MapboxMap? _map;
@@ -59,7 +67,9 @@ class _MapboxMapViewState extends State<MapboxMapView> {
 
   void _onCameraRequest() {
     final target = widget.config.camera.target;
-    if (target != null) _viewport.moveTo(_cameraAt(target), transition: const FlyViewportTransition());
+    if (target == null) return;
+    final zoom = widget.config.camera.closeUp ? _closeUpZoom : _zoom;
+    _viewport.moveTo(_cameraAt(target, zoom: zoom), transition: const FlyViewportTransition());
   }
 
   void _onMapCreated(MapboxMap map) {
@@ -74,6 +84,30 @@ class _MapboxMapViewState extends State<MapboxMapView> {
       }),
       interactionID: 'tap_event_markers',
     );
+    map.addInteraction(
+      TapInteraction(FeaturesetDescriptor(layerId: _clustersLayerId), _expandCluster),
+      interactionID: 'tap_event_clusters',
+    );
+  }
+
+  /// Al tocar un clúster el mapa se acerca justo hasta donde sus eventos se separan.
+  Future<void> _expandCluster(FeaturesetFeature cluster, MapContentGestureContext context) async {
+    final map = _map;
+    if (map == null) return;
+    final expansion = await map.getGeoJsonClusterExpansionZoom(_markersSourceId, {
+      'type': 'Feature',
+      'geometry': cluster.geometry,
+      'properties': cluster.properties,
+    });
+    final zoom = double.tryParse(expansion.value ?? '') ?? _closeUpZoom;
+    final center = context.point.coordinates;
+    _viewport.moveTo(
+      _cameraAt(
+        GeoPoint(latitude: center.lat.toDouble(), longitude: center.lng.toDouble()),
+        zoom: zoom,
+      ),
+      transition: const FlyViewportTransition(),
+    );
   }
 
   /// Cargar un estilo borra las fuentes y capas propias, así que se agregan en cada carga.
@@ -81,16 +115,60 @@ class _MapboxMapViewState extends State<MapboxMapView> {
     final map = _map;
     if (map == null) return;
     _markersReady = false;
-    await map.addSource(GeoJsonSource(id: _markersSourceId, data: _markersGeoJson()));
+    await map.addSource(
+      GeoJsonSource(
+        id: _markersSourceId,
+        data: markersGeoJson(widget.config.markers),
+        cluster: true,
+        clusterRadius: _clusterRadius,
+        clusterMaxZoom: _clusterMaxZoom,
+      ),
+    );
+    const isCluster = ['has', 'point_count'];
     await map.addLayer(
       CircleLayer(
         id: _markersLayerId,
         sourceId: _markersSourceId,
         slot: 'top',
+        filter: const ['!', isCluster],
         circleRadius: 9,
         circleColorExpression: ['get', 'color'],
         circleStrokeWidth: 2,
         circleStrokeColor: Colors.white.toARGB32(),
+      ),
+    );
+    // Círculos de marca (Figma) que crecen con el número de eventos agrupados.
+    await map.addLayer(
+      CircleLayer(
+        id: _clustersLayerId,
+        sourceId: _markersSourceId,
+        slot: 'top',
+        filter: isCluster,
+        circleColor: FestaTheme.brand.toARGB32(),
+        circleRadiusExpression: const [
+          'step',
+          ['get', 'point_count'],
+          18.0,
+          10,
+          22.0,
+          50,
+          26.0,
+        ],
+        circleStrokeWidth: 2,
+        circleStrokeColor: Colors.white.toARGB32(),
+      ),
+    );
+    // El número va en tinta: el blanco sobre el magenta no alcanza el contraste mínimo.
+    await map.addLayer(
+      SymbolLayer(
+        id: _clusterCountLayerId,
+        sourceId: _markersSourceId,
+        slot: 'top',
+        filter: isCluster,
+        textFieldExpression: const ['get', 'point_count_abbreviated'],
+        textSize: 14,
+        textColor: FestaTheme.ink.toARGB32(),
+        textAllowOverlap: true,
       ),
     );
     _markersReady = true;
@@ -103,25 +181,8 @@ class _MapboxMapViewState extends State<MapboxMapView> {
     final map = _map;
     if (map == null || !_markersReady) return;
     final source = await map.getSource(_markersSourceId);
-    await (source as GeoJsonSource).updateGeoJSON(_markersGeoJson());
+    await (source as GeoJsonSource).updateGeoJSON(markersGeoJson(widget.config.markers));
   }
-
-  String _markersGeoJson() => jsonEncode({
-    'type': 'FeatureCollection',
-    'features': [
-      for (final marker in widget.config.markers)
-        {
-          'type': 'Feature',
-          'geometry': {
-            'type': 'Point',
-            'coordinates': [marker.point.longitude, marker.point.latitude],
-          },
-          'properties': {'id': marker.id, 'color': _hex(marker.color)},
-        },
-    ],
-  });
-
-  static String _hex(Color color) => '#${(color.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
 
   void _updateUserLocation() {
     _map?.location.updateSettings(
@@ -136,9 +197,9 @@ class _MapboxMapViewState extends State<MapboxMapView> {
     );
   }
 
-  static CameraViewportState _cameraAt(GeoPoint point) => CameraViewportState(
+  static CameraViewportState _cameraAt(GeoPoint point, {double zoom = _zoom}) => CameraViewportState(
     center: Point(coordinates: Position(point.longitude, point.latitude)),
-    zoom: _zoom,
+    zoom: zoom,
   );
 
   @override
