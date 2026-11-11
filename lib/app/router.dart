@@ -7,6 +7,7 @@ import '../features/auth/domain/account.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
 import '../features/events/presentation/create_event_screen.dart';
+import '../features/events/presentation/edit_event_screen.dart';
 import '../features/events/presentation/event_detail_screen.dart';
 import '../features/events/presentation/my_events_screen.dart';
 import '../features/home/presentation/home_screen.dart';
@@ -54,6 +55,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: Routes.merchantForm, builder: (_, _) => const MerchantFormScreen()),
       GoRoute(path: Routes.merchantStatus, builder: (_, _) => const MerchantStatusScreen()),
       GoRoute(path: Routes.createEvent, builder: (_, _) => const CreateEventScreen()),
+      GoRoute(
+        path: Routes.editEventPattern,
+        builder: (_, state) => EditEventScreen(eventId: state.pathParameters['id']!),
+      ),
       // Fuera de la barra inferior: el detalle ocupa toda la pantalla, como en el Figma.
       GoRoute(
         path: Routes.eventDetailPattern,
