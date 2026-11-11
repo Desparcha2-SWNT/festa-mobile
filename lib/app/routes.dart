@@ -6,6 +6,8 @@ abstract final class Routes {
   static const home = '/';
   static const map = '/map';
   static const eventDetailPattern = '/events/:id';
+  static const myEvents = '/my-events';
+  static const createEvent = '/my-events/new';
   static const myMerchant = '/merchant';
   static const merchantForm = '/merchant/form';
   static const merchantStatus = '/merchant/status';

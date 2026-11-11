@@ -6,7 +6,9 @@ import '../features/auth/application/session_controller.dart';
 import '../features/auth/domain/account.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
+import '../features/events/presentation/create_event_screen.dart';
 import '../features/events/presentation/event_detail_screen.dart';
+import '../features/events/presentation/my_events_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/location/application/location_consent_controller.dart';
 import '../features/location/presentation/location_consent_screen.dart';
@@ -51,6 +53,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: Routes.locationConsent, builder: (_, _) => const LocationConsentScreen()),
       GoRoute(path: Routes.merchantForm, builder: (_, _) => const MerchantFormScreen()),
       GoRoute(path: Routes.merchantStatus, builder: (_, _) => const MerchantStatusScreen()),
+      GoRoute(path: Routes.createEvent, builder: (_, _) => const CreateEventScreen()),
       // Fuera de la barra inferior: el detalle ocupa toda la pantalla, como en el Figma.
       GoRoute(
         path: Routes.eventDetailPattern,
@@ -67,6 +70,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           StatefulShellBranch(
             routes: [GoRoute(path: Routes.myMerchant, builder: (_, _) => const MyMerchantScreen())],
+          ),
+          StatefulShellBranch(
+            routes: [GoRoute(path: Routes.myEvents, builder: (_, _) => const MyEventsScreen())],
           ),
         ],
       ),
@@ -97,7 +103,7 @@ String? _redirect({
 
   const entryRoutes = {..._publicRoutes, Routes.splash, Routes.locationConsent, Routes.merchantStatus};
   if (!entryRoutes.contains(location)) return null;
-  return account.role == Role.merchant ? Routes.myMerchant : Routes.home;
+  return account.role == Role.merchant ? Routes.myEvents : Routes.home;
 }
 
 /// A dónde debe ir una cuenta de comercio mientras su perfil no está verificado, o `null` si ya

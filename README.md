@@ -95,3 +95,12 @@ lib/
 - La ubicación se elige tocando un mapa pequeño (`LocationPickerField`), así que se guardan las coordenadas exactas sin
   geocodificar la dirección escrita.
 - El teléfono y el NIT del Figma están marcados como «Propuesta»: user-service todavía no los recibe.
+
+## Eventos del organizador (RF4)
+
+- Un comercio verificado entra a «Mis eventos» (`MyEventsScreen`, `GET /api/events/mine`), con las pestañas Publicados
+  y Cancelados. Los borradores del Figma aún no existen en event-service.
+- «Crear evento» (`CreateEventScreen`): datos y vista previa antes de publicar (`POST /api/events`, como el comercio).
+  El lugar arranca en el del comercio. El paso de descripción con IA del Figma llega con SCRUM-101.
+- `EventForm` tiene los campos y sus validaciones, y lo reutiliza la edición. El evento empieza y termina el mismo día.
+- La app está en español (`flutter_localizations`), así que el calendario y el reloj salen en español.
