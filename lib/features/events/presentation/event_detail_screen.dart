@@ -48,6 +48,7 @@ class _EventDetail extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final capacity = event.capacity;
+    final cancelled = event.status == EventStatus.cancelled;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -60,6 +61,7 @@ class _EventDetail extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (cancelled) ...[const _CancelledBanner(), const SizedBox(height: 16)],
                     Text(event.title, style: theme.textTheme.headlineSmall),
                     const SizedBox(height: 16),
                     _InfoRow(icon: Icons.calendar_today_outlined, text: EventFormatters.schedule(event)),
@@ -91,18 +93,44 @@ class _EventDetail extends ConsumerWidget {
             ],
           ),
         ),
-        SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-            child: OutlinedButton(
-              key: const Key('eventDetail.showOnMap'),
-              onPressed: () => _showOnMap(context, ref),
-              child: const Text('Ver en el mapa'),
+        // Un evento cancelado ya no está en el mapa.
+        if (!cancelled)
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+              child: OutlinedButton(
+                key: const Key('eventDetail.showOnMap'),
+                onPressed: () => _showOnMap(context, ref),
+                child: const Text('Ver en el mapa'),
+              ),
             ),
           ),
-        ),
       ],
+    );
+  }
+}
+
+class _CancelledBanner extends StatelessWidget {
+  const _CancelledBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(color: colors.errorContainer, borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(Icons.event_busy, color: colors.onErrorContainer),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text('El organizador canceló este evento.', style: TextStyle(color: colors.onErrorContainer)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -42,6 +42,7 @@ class MapViewConfig {
     required this.camera,
     this.markers = const [],
     this.onMarkerTap,
+    this.onMapTap,
   });
 
   final GeoPoint initialCenter;
@@ -52,6 +53,9 @@ class MapViewConfig {
   final MapCameraController camera;
   final List<MapMarker> markers;
   final ValueChanged<String>? onMarkerTap;
+
+  /// Toque en el mapa fuera de los marcadores, con el punto tocado (para elegir una ubicación).
+  final ValueChanged<GeoPoint>? onMapTap;
 }
 
 typedef MapViewBuilder = Widget Function(MapViewConfig config);
