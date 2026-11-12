@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/design/design.dart';
 import '../../../app/routes.dart';
 import '../../../core/network/api_exception.dart';
 import '../application/session_controller.dart';
@@ -141,16 +142,16 @@ class _CredentialsError extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF0F0),
+          color: FestaColors.bgErrorSoft,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFFFCDD2)),
+          border: Border.all(color: FestaColors.error),
         ),
         child: Row(
           children: [
-            const Icon(Icons.error_outline, color: Color(0xFFD32F2F), size: 18),
+            const Icon(Icons.error_outline, color: FestaColors.error, size: 18),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(message, style: const TextStyle(color: Color(0xFFD32F2F), fontSize: 13)),
+              child: Text(message, style: const TextStyle(color: FestaColors.error, fontSize: 13)),
             ),
           ],
         ),
@@ -170,7 +171,7 @@ class _OrDivider extends StatelessWidget {
         Expanded(child: Divider()),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 12),
-          child: Text('○', style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 12)),
+          child: Text('○', style: TextStyle(color: FestaColors.textDisabled, fontSize: 12)),
         ),
         Expanded(child: Divider()),
       ],

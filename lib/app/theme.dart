@@ -1,71 +1,71 @@
 import 'package:flutter/material.dart';
 
-/// Tema base de Festa. Centraliza colores y estilos para que las pantallas no los repitan.
+import 'design/design.dart';
+
+/// Tema base de Festa, construido con los tokens del Figma (`lib/app/design/`).
+/// Las pantallas no deben repetir colores ni estilos: usan este tema y los tokens.
 abstract final class FestaTheme {
-  /// Magenta principal de Festa (#F0127E). Coincide con el logo y el Figma.
-  static const primary = Color(0xFFF0127E);
+  /// Magenta principal (#F0127E). Se conserva por compatibilidad: prefiere [FestaColors.bgBrand].
+  static const primary = FestaColors.bgBrand;
 
-  /// Tinta oscura para texto sobre fondo claro (#111111).
-  static const ink = Color(0xFF111111);
-
-  /// Títulos (Bricolage Grotesque) y texto (Plus Jakarta Sans), como en el Figma.
-  static const headingFont = 'BricolageGrotesque';
-  static const bodyFont = 'PlusJakartaSans';
+  /// Tinta (#111111). Se conserva por compatibilidad: prefiere [FestaColors.textPrimary].
+  static const ink = FestaColors.textPrimary;
 
   static ThemeData light() => _build(Brightness.light);
 
+  // El Figma solo define el modo claro; el oscuro queda pendiente. Mientras tanto la app siempre usa el claro.
   static ThemeData dark() => _build(Brightness.dark);
 
-  static TextTheme _textTheme(Brightness brightness) {
-    final base = ThemeData(brightness: brightness).textTheme.apply(fontFamily: bodyFont);
-    TextStyle? heading(TextStyle? style) => style?.copyWith(fontFamily: headingFont, fontWeight: FontWeight.w700);
-    return base.copyWith(
-      displayLarge: heading(base.displayLarge),
-      displayMedium: heading(base.displayMedium),
-      displaySmall: heading(base.displaySmall),
-      headlineLarge: heading(base.headlineLarge),
-      headlineMedium: heading(base.headlineMedium),
-      headlineSmall: heading(base.headlineSmall),
-      titleLarge: heading(base.titleLarge),
+  static ThemeData _build(Brightness brightness) {
+    final scheme = ColorScheme.fromSeed(
+      seedColor: FestaColors.bgBrand,
+      brightness: brightness,
+    ).copyWith(primary: FestaColors.bgBrand, onPrimary: FestaColors.textOnBrand, error: FestaColors.error);
+    OutlineInputBorder border(Color color, [double width = 1]) => OutlineInputBorder(
+      borderRadius: FestaRadius.mdAll,
+      borderSide: BorderSide(color: color, width: width),
+    );
+    return ThemeData(
+      fontFamily: FestaText.bodyFont,
+      textTheme: FestaText.textTheme,
+      colorScheme: scheme,
+      scaffoldBackgroundColor: FestaColors.bg,
+      inputDecorationTheme: InputDecorationTheme(
+        border: border(FestaColors.border),
+        enabledBorder: border(FestaColors.border),
+        focusedBorder: border(FestaColors.borderBrand, 2),
+        errorBorder: border(FestaColors.error),
+        focusedErrorBorder: border(FestaColors.error, 2),
+        filled: true,
+        fillColor: FestaColors.bg,
+        labelStyle: FestaText.bodyL.copyWith(color: FestaColors.textSecondary),
+        hintStyle: FestaText.bodyL.copyWith(color: FestaColors.textDisabled),
+        errorStyle: FestaText.caption.copyWith(color: FestaColors.textError),
+        contentPadding: const EdgeInsets.symmetric(horizontal: FestaSpace.md, vertical: 14),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(64, 52),
+          backgroundColor: FestaColors.bgBrand,
+          foregroundColor: FestaColors.textOnBrand, // negro sobre magenta (AA)
+          disabledBackgroundColor: FestaColors.bgMuted,
+          disabledForegroundColor: FestaColors.textDisabled,
+          shape: const StadiumBorder(),
+          textStyle: FestaText.labelL,
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(64, 52),
+          foregroundColor: FestaColors.textPrimary,
+          side: const BorderSide(color: FestaColors.border, width: 1.5),
+          shape: const StadiumBorder(),
+          textStyle: FestaText.labelL,
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(foregroundColor: FestaColors.textBrand, textStyle: FestaText.labelM),
+      ),
     );
   }
-
-  static ThemeData _build(Brightness brightness) => ThemeData(
-    fontFamily: bodyFont,
-    textTheme: _textTheme(brightness),
-    colorScheme: ColorScheme.fromSeed(seedColor: primary, brightness: brightness),
-    inputDecorationTheme: InputDecorationTheme(
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFD1D1D1)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: primary, width: 2),
-      ),
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-    ),
-    filledButtonTheme: FilledButtonThemeData(
-      style: FilledButton.styleFrom(
-        minimumSize: const Size(64, 52),
-        backgroundColor: primary,
-        foregroundColor: ink, // negro sobre magenta (cumple AA: 4.6:1)
-        shape: const StadiumBorder(),
-        textStyle: const TextStyle(fontFamily: bodyFont, fontSize: 16, fontWeight: FontWeight.w600),
-      ),
-    ),
-    outlinedButtonTheme: OutlinedButtonThemeData(
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size(64, 52),
-        foregroundColor: ink,
-        side: const BorderSide(color: Color(0xFFD1D1D1), width: 1.5),
-        shape: const StadiumBorder(),
-        textStyle: const TextStyle(fontFamily: bodyFont, fontSize: 16, fontWeight: FontWeight.w500),
-      ),
-    ),
-    textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: primary)),
-  );
 }

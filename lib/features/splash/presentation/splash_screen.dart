@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/design/design.dart';
+
 /// Pantalla de splash (Etiqueta 1 · Splash del Figma).
 ///
 /// Se muestra mientras el router decide si el usuario ya tiene sesión.
@@ -11,7 +13,7 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: FestaColors.bg,
       body: SafeArea(
         child: Center(
           child: Column(
@@ -22,7 +24,7 @@ class SplashScreen extends StatelessWidget {
               SizedBox(height: 24),
               Text(
                 'Menos buscar, más vivir la ciudad.',
-                style: TextStyle(fontSize: 15, color: Color(0xFF555555), letterSpacing: 0.1),
+                style: TextStyle(fontSize: 15, color: FestaColors.textSecondary, letterSpacing: 0.1),
               ),
             ],
           ),

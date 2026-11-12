@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/design/design.dart';
 import '../../../app/routes.dart';
-import '../../../app/theme.dart';
 import '../../../core/network/api_exception.dart';
 import '../../merchant/data/merchant_api.dart';
 import '../application/session_controller.dart';
@@ -376,17 +376,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             // Placeholder del mapa (se implementa con Mapbox en la historia del mapa)
             Container(
               height: 140,
-              decoration: BoxDecoration(color: const Color(0xFFEEEEEE), borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(color: FestaColors.bgMuted, borderRadius: BorderRadius.circular(12)),
               child: const Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.location_on, color: FestaTheme.primary, size: 32),
+                    Icon(Icons.location_on, color: FestaColors.bgBrand, size: 32),
                     SizedBox(height: 4),
                     Text(
                       'Toca el mapa para fijar la ubicación exacta del lugar.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 12, color: Color(0xFF888888)),
+                      style: TextStyle(fontSize: 12, color: FestaColors.textSecondary),
                     ),
                   ],
                 ),
@@ -405,18 +405,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   label: Text(cat),
                   selected: selected,
                   onSelected: (_) => setState(() => _category = cat),
-                  selectedColor: FestaTheme.primary,
+                  selectedColor: FestaColors.bgBrand,
                   labelStyle: TextStyle(
-                    color: selected ? FestaTheme.ink : null,
+                    color: selected ? FestaColors.textPrimary : null,
                     fontWeight: selected ? FontWeight.w600 : null,
                   ),
-                  checkmarkColor: FestaTheme.ink,
+                  checkmarkColor: FestaColors.textPrimary,
                 );
               }).toList(),
             ),
             if (categoryError) ...[
               const SizedBox(height: 6),
-              const Text('Selecciona una categoría.', style: TextStyle(color: Color(0xFFD32F2F), fontSize: 12)),
+              const Text('Selecciona una categoría.', style: TextStyle(color: FestaColors.error, fontSize: 12)),
             ],
             const SizedBox(height: 28),
             FilledButton(key: const Key('register.next2'), onPressed: _nextStep, child: const Text('Continuar')),
@@ -480,16 +480,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             // Aviso de verificación manual (como en el Figma)
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: const Color(0xFFF3EEFF), borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(color: FestaColors.bgIa, borderRadius: BorderRadius.circular(10)),
               child: const Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.info_outline, size: 18, color: Color(0xFF7C4DFF)),
+                  Icon(Icons.info_outline, size: 18, color: FestaColors.accentIa),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Al terminar crearemos tu cuenta y el equipo de Festa revisará tu comercio a mano. Te avisamos el resultado.',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF5C5C5C)),
+                      style: TextStyle(fontSize: 12, color: FestaColors.textSecondary),
                     ),
                   ),
                 ],
@@ -531,11 +531,11 @@ class _AccountTypeSelector extends StatelessWidget {
         visualDensity: VisualDensity.compact,
         padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 8)),
         backgroundColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return FestaTheme.primary;
+          if (states.contains(WidgetState.selected)) return FestaColors.bgBrand;
           return null;
         }),
         foregroundColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return FestaTheme.ink;
+          if (states.contains(WidgetState.selected)) return FestaColors.textPrimary;
           return null;
         }),
       ),
@@ -558,13 +558,13 @@ class _StepIndicator extends StatelessWidget {
         children: [
           Text(
             'Paso $current de $total',
-            style: const TextStyle(color: FestaTheme.primary, fontWeight: FontWeight.w600, fontSize: 13),
+            style: const TextStyle(color: FestaColors.bgBrand, fontWeight: FontWeight.w600, fontSize: 13),
           ),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
               '· $label',
-              style: const TextStyle(color: Color(0xFF888888), fontSize: 13),
+              style: const TextStyle(color: FestaColors.textSecondary, fontSize: 13),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -608,11 +608,11 @@ class _ProposalBadge extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 4),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
-            color: const Color(0xFFFFF3E0),
+            color: FestaColors.bgLive,
             borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: const Color(0xFFFFCC80)),
+            border: Border.all(color: FestaColors.bgLive),
           ),
-          child: const Text('Propuesta', style: TextStyle(fontSize: 11, color: Color(0xFFE65100))),
+          child: const Text('Propuesta', style: TextStyle(fontSize: 11, color: FestaColors.textPrimary)),
         ),
         child,
       ],
@@ -649,7 +649,7 @@ class _PrivacyCheckbox extends StatelessWidget {
                 : null,
             title: const Text(_privacyText, style: TextStyle(fontSize: 13)),
           ),
-          if (field.hasError) Text(field.errorText!, style: const TextStyle(color: Color(0xFFD32F2F), fontSize: 12)),
+          if (field.hasError) Text(field.errorText!, style: const TextStyle(color: FestaColors.error, fontSize: 12)),
         ],
       ),
     );
@@ -668,16 +668,16 @@ class _ErrorBanner extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF0F0),
+          color: FestaColors.bgErrorSoft,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFFFCDD2)),
+          border: Border.all(color: FestaColors.error),
         ),
         child: Row(
           children: [
-            const Icon(Icons.error_outline, color: Color(0xFFD32F2F), size: 18),
+            const Icon(Icons.error_outline, color: FestaColors.error, size: 18),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(message, style: const TextStyle(color: Color(0xFFD32F2F), fontSize: 13)),
+              child: Text(message, style: const TextStyle(color: FestaColors.error, fontSize: 13)),
             ),
           ],
         ),

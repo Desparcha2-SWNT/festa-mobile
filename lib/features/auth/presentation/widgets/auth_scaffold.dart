@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/theme.dart';
+import '../../../../app/design/design.dart';
 
 /// Estructura común de las pantallas de acceso (login, registro).
 /// Muestra la corona de Festa, título grande, subtítulo y el formulario centrado.
@@ -16,7 +16,7 @@ class AuthScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: FestaColors.bg,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -32,13 +32,13 @@ class AuthScaffold extends StatelessWidget {
                   Text(
                     title,
                     style: theme.textTheme.headlineMedium?.copyWith(
-                      color: FestaTheme.ink,
+                      color: FestaColors.textPrimary,
                       fontWeight: FontWeight.w700,
                       height: 1.2,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(subtitle, style: theme.textTheme.bodyLarge?.copyWith(color: const Color(0xFF555555))),
+                  Text(subtitle, style: theme.textTheme.bodyLarge?.copyWith(color: FestaColors.textSecondary)),
                   const SizedBox(height: 28),
                   if (errorMessage != null) ...[_ErrorBanner(message: errorMessage!), const SizedBox(height: 16)],
                   child,
@@ -79,18 +79,18 @@ class _ErrorBanner extends StatelessWidget {
       liveRegion: true,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF0F0),
+          color: FestaColors.bgErrorSoft,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFFFCDD2)),
+          border: Border.all(color: FestaColors.error),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(
             children: [
-              const Icon(Icons.error_outline, color: Color(0xFFD32F2F), size: 20),
+              const Icon(Icons.error_outline, color: FestaColors.error, size: 20),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(message, style: const TextStyle(color: Color(0xFFD32F2F), fontSize: 14)),
+                child: Text(message, style: const TextStyle(color: FestaColors.error, fontSize: 14)),
               ),
             ],
           ),
