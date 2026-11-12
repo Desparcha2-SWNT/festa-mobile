@@ -2,6 +2,8 @@ import 'package:festa/app/festa_app.dart';
 import 'package:festa/core/network/api_exception.dart';
 import 'package:festa/features/auth/application/auth_providers.dart';
 import 'package:festa/features/auth/domain/account.dart';
+import 'package:festa/features/merchant/application/merchant_providers.dart';
+import 'package:festa/features/merchant/data/merchant_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,19 +13,30 @@ import '../../../support/fakes.dart';
 
 void main() {
   late MockAuthApi api;
+  late MockMerchantApi merchantApi;
   late InMemoryTokenStorage storage;
 
-  setUpAll(() => registerFallbackValue(AccountType.user));
+  setUpAll(() {
+    registerFallbackValue(AccountType.user);
+    registerFallbackValue(
+      const MerchantRequest(businessName: '', category: '', address: '', latitude: 0, longitude: 0),
+    );
+  });
 
   setUp(() {
     api = MockAuthApi();
+    merchantApi = MockMerchantApi();
     storage = InMemoryTokenStorage();
   });
 
   Future<void> pumpApp(WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [authApiProvider.overrideWithValue(api), tokenStorageProvider.overrideWithValue(storage)],
+        overrides: [
+          authApiProvider.overrideWithValue(api),
+          merchantApiProvider.overrideWithValue(merchantApi),
+          tokenStorageProvider.overrideWithValue(storage),
+        ],
         child: const FestaApp(),
       ),
     );
@@ -170,20 +183,11 @@ void main() {
     );
   });
 
-  testWidgets('el registro exitoso entra al inicio con el tipo de cuenta elegido', (tester) async {
-    when(
-      () => api.register(
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-        displayName: any(named: 'displayName'),
-        accountType: any(named: 'accountType'),
-      ),
-    ).thenAnswer((_) async => testSession());
+  Future<void> fillMerchantWizard(WidgetTester tester) async {
     await pumpApp(tester);
     await tester.ensureVisible(find.text('¿No tienes cuenta? Regístrate'));
     await tester.tap(find.text('¿No tienes cuenta? Regístrate'));
     await tester.pumpAndSettle();
-
     await tester.ensureVisible(find.text('Comercio'));
     await tester.tap(find.text('Comercio'));
     await _fillRegister(tester);
@@ -198,6 +202,23 @@ void main() {
     await tester.ensureVisible(find.byKey(const Key('register.submit')));
     await tester.tap(find.byKey(const Key('register.submit')));
     await tester.pumpAndSettle();
+  }
+
+  void stubMerchantRegister() => when(
+    () => api.register(
+      email: any(named: 'email'),
+      password: any(named: 'password'),
+      displayName: any(named: 'displayName'),
+      accountType: any(named: 'accountType'),
+    ),
+  ).thenAnswer((_) async => merchantSession);
+
+  testWidgets('el registro de comercio crea la cuenta, envía la solicitud y llega a la verificación', (tester) async {
+    stubMerchantRegister();
+    when(() => merchantApi.submit(any())).thenAnswer((_) async => const MerchantStatus(verificationStatus: 'PENDING'));
+    when(() => merchantApi.myMerchant()).thenAnswer((_) async => const MerchantStatus(verificationStatus: 'PENDING'));
+
+    await fillMerchantWizard(tester);
 
     verify(
       () => api.register(
@@ -207,7 +228,40 @@ void main() {
         accountType: AccountType.merchant,
       ),
     ).called(1);
-    expect(find.text('Hola, Ana'), findsOneWidget);
+    final request = verify(() => merchantApi.submit(captureAny())).captured.single as MerchantRequest;
+    expect(request.businessName, 'Ana');
+    expect(request.category, 'CULTURAL');
+    expect(request.address, 'Calle 205 # 59-00, Bogotá');
+    expect(find.byKey(const Key('merchant.status.title')), findsOneWidget);
+    expect(find.text('Estamos revisando tu perfil'), findsOneWidget);
+  });
+
+  testWidgets('si la solicitud falla, se queda en el registro y al reintentar no repite la cuenta', (tester) async {
+    stubMerchantRegister();
+    var attempts = 0;
+    when(() => merchantApi.submit(any())).thenAnswer((_) async {
+      if (++attempts == 1) throw networkFailure;
+      return const MerchantStatus(verificationStatus: 'PENDING');
+    });
+    when(() => merchantApi.myMerchant()).thenAnswer((_) async => const MerchantStatus(verificationStatus: 'PENDING'));
+
+    await fillMerchantWizard(tester);
+    expect(find.byKey(const Key('merchant.status.title')), findsNothing);
+    expect(find.byKey(const Key('register.submit')), findsOneWidget);
+
+    await tester.ensureVisible(find.byKey(const Key('register.submit')));
+    await tester.tap(find.byKey(const Key('register.submit')));
+    await tester.pumpAndSettle();
+
+    verify(
+      () => api.register(
+        email: any(named: 'email'),
+        password: any(named: 'password'),
+        displayName: any(named: 'displayName'),
+        accountType: any(named: 'accountType'),
+      ),
+    ).called(1);
+    expect(find.byKey(const Key('merchant.status.title')), findsOneWidget);
   });
 }
 

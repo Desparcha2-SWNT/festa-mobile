@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/application/session_controller.dart';
+import '../features/auth/domain/account.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
 import '../features/home/presentation/home_screen.dart';
+import '../features/merchant/presentation/merchant_pending_screen.dart';
 import '../features/splash/presentation/splash_screen.dart';
 import 'routes.dart';
 
@@ -29,7 +31,10 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       final loggedIn = session.value != null;
       if (!loggedIn) return _publicRoutes.contains(location) ? null : Routes.login;
-      if (_publicRoutes.contains(location) || location == Routes.splash) return Routes.home;
+      // Los comercios aterrizan en su verificación (RF3); el resto, en el inicio.
+      final account = session.value;
+      final landing = account is Account && account.role == Role.merchant ? Routes.merchantPending : Routes.home;
+      if (_publicRoutes.contains(location) || location == Routes.splash) return landing;
       return null;
     },
     routes: [
@@ -37,6 +42,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: Routes.login, builder: (_, _) => const LoginScreen()),
       GoRoute(path: Routes.register, builder: (_, _) => const RegisterScreen()),
       GoRoute(path: Routes.home, builder: (_, _) => const HomeScreen()),
+      GoRoute(path: Routes.merchantPending, builder: (_, _) => const MerchantPendingScreen()),
     ],
   );
   ref.onDispose(router.dispose);

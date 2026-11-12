@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
 import '../../../app/theme.dart';
 import '../../../core/network/api_exception.dart';
+import '../../merchant/data/merchant_api.dart';
 import '../application/session_controller.dart';
 import '../domain/account.dart';
 import 'auth_validators.dart';
@@ -39,6 +40,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _address = TextEditingController();
   String? _category; // valor en español, se mapea al enum del backend al enviar
   static const _categories = ['Cultural', 'Musical', 'Deportivo', 'Gastronómico', 'Otro'];
+  static const _categoryApiValues = {
+    'Cultural': 'CULTURAL',
+    'Musical': 'MUSICAL',
+    'Deportivo': 'DEPORTIVO',
+    'Gastronómico': 'GASTRONOMICO',
+    'Otro': 'OTRO',
+  };
+  static const _bogotaLatitude = 4.7110;
+  static const _bogotaLongitude = -74.0721;
 
   // Paso 3 (comercio)
   final _description = TextEditingController();
@@ -74,15 +84,20 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       return;
     }
     if (_submitting) return;
-    setState(() { _submitting = true; _error = null; });
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
     try {
-      await ref.read(sessionControllerProvider.notifier).register(
-        email: _email.text.trim(),
-        password: _password.text,
-        displayName: _name.text.trim(),
-        accountType: AccountType.user,
-        acceptedPrivacyPolicy: _acceptedPrivacy,
-      );
+      await ref
+          .read(sessionControllerProvider.notifier)
+          .register(
+            email: _email.text.trim(),
+            password: _password.text,
+            displayName: _name.text.trim(),
+            accountType: AccountType.user,
+            acceptedPrivacyPolicy: _acceptedPrivacy,
+          );
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e);
     } finally {
@@ -100,7 +115,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       setState(() {}); // fuerza el rebuild para mostrar el error de categoría
       return;
     }
-    setState(() { _step++; _autovalidateMode = AutovalidateMode.disabled; });
+    setState(() {
+      _step++;
+      _autovalidateMode = AutovalidateMode.disabled;
+    });
   }
 
   Future<void> _submitComercio() async {
@@ -109,23 +127,30 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       return;
     }
     if (_submitting) return;
-    setState(() { _submitting = true; _error = null; });
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
     try {
-      // Paso 1: registro en auth-service. displayName = nombre del comercio.
-      await ref.read(sessionControllerProvider.notifier).register(
-        email: _email.text.trim(),
-        password: _password.text,
-        displayName: _name.text.trim(),
-        accountType: AccountType.merchant,
-        acceptedPrivacyPolicy: _acceptedPrivacy, // validado localmente; no va al back
-      );
-      // TODO(SCRUM-?): llamar a festa-user-service POST /users/merchant con:
-      //   businessName: _name.text.trim()
-      //   category: _categoryApiValues[_category]   → p.ej. 'GASTRONOMICO'
-      //   address: _address.text.trim()
-      //   latitude / longitude: coordenadas del mapa (pendiente: mapa Mapbox en paso 2)
-      //   description: _description.text.trim() (opcional)
-      // teléfono y NIT/RUT NO van: el backend no los acepta (ver CLAUDE.md § Figma 3).
+      // Cuenta en auth-service y solicitud en user-service (ver SessionController.registerMerchant).
+      await ref
+          .read(sessionControllerProvider.notifier)
+          .registerMerchant(
+            email: _email.text.trim(),
+            password: _password.text,
+            acceptedPrivacyPolicy: _acceptedPrivacy, // validado localmente; no va al back
+            request: MerchantRequest(
+              businessName: _name.text.trim(),
+              category: _categoryApiValues[_category]!,
+              address: _address.text.trim(),
+              // TODO: sustituir por las coordenadas del selector de mapa (Mapbox, RF5). Mientras tanto,
+              // centro de Bogota, para que el backend acepte la solicitud.
+              latitude: _bogotaLatitude,
+              longitude: _bogotaLongitude,
+              description: _description.text.trim(),
+            ),
+          );
+      // El router lleva al comercio a su verificación cuando la sesión queda publicada.
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e);
     } finally {
@@ -160,7 +185,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             children: [
               _AccountTypeSelector(
                 value: _accountType,
-                onChanged: _submitting ? null : (t) => setState(() { _accountType = t; _step = 1; }),
+                onChanged: _submitting
+                    ? null
+                    : (t) => setState(() {
+                        _accountType = t;
+                        _step = 1;
+                      }),
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -181,10 +211,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 autofillHints: const [AutofillHints.email],
                 textInputAction: TextInputAction.next,
                 validator: AuthValidators.email,
-                decoration: InputDecoration(
-                  labelText: 'Correo electrónico',
-                  errorText: _error?.fieldErrors['email'],
-                ),
+                decoration: InputDecoration(labelText: 'Correo electrónico', errorText: _error?.fieldErrors['email']),
               ),
               const SizedBox(height: 16),
               PasswordField(
@@ -212,17 +239,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 enabled: !_submitting,
                 onChanged: (v) => setState(() => _acceptedPrivacy = v),
               ),
-              if (_error?.message != null) ...[
-                const SizedBox(height: 12),
-                _ErrorBanner(message: _error!.message),
-              ],
+              if (_error?.message != null) ...[const SizedBox(height: 12), _ErrorBanner(message: _error!.message)],
               const SizedBox(height: 24),
               FilledButton(
                 key: const Key('register.submit'),
                 onPressed: _submitting ? null : _submitPersona,
-                child: _submitting
-                    ? const Text('Creando cuenta...')
-                    : const Text('Crear cuenta'),
+                child: _submitting ? const Text('Creando cuenta...') : const Text('Crear cuenta'),
               ),
               const SizedBox(height: 12),
               TextButton(
@@ -251,7 +273,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             children: [
               _AccountTypeSelector(
                 value: _accountType,
-                onChanged: _submitting ? null : (t) => setState(() { _accountType = t; _step = 1; }),
+                onChanged: _submitting
+                    ? null
+                    : (t) => setState(() {
+                        _accountType = t;
+                        _step = 1;
+                      }),
               ),
               const SizedBox(height: 4),
               const _StepIndicator(current: 1, total: 3, label: 'Tu cuenta'),
@@ -349,17 +376,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             // Placeholder del mapa (se implementa con Mapbox en la historia del mapa)
             Container(
               height: 140,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEEEEEE),
-                borderRadius: BorderRadius.circular(12),
-              ),
+              decoration: BoxDecoration(color: const Color(0xFFEEEEEE), borderRadius: BorderRadius.circular(12)),
               child: const Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.location_on, color: FestaTheme.primary, size: 32),
                     SizedBox(height: 4),
-                    Text('Toca el mapa para fijar la ubicación exacta del lugar.',
+                    Text(
+                      'Toca el mapa para fijar la ubicación exacta del lugar.',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 12, color: Color(0xFF888888)),
                     ),
@@ -391,15 +416,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
             if (categoryError) ...[
               const SizedBox(height: 6),
-              const Text('Selecciona una categoría.',
-                style: TextStyle(color: Color(0xFFD32F2F), fontSize: 12)),
+              const Text('Selecciona una categoría.', style: TextStyle(color: Color(0xFFD32F2F), fontSize: 12)),
             ],
             const SizedBox(height: 28),
-            FilledButton(
-              key: const Key('register.next2'),
-              onPressed: _nextStep,
-              child: const Text('Continuar'),
-            ),
+            FilledButton(key: const Key('register.next2'), onPressed: _nextStep, child: const Text('Continuar')),
           ],
         ),
       ),
@@ -443,10 +463,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 controller: _phone,
                 keyboardType: TextInputType.phone,
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'Teléfono de contacto',
-                  hintText: '+57 300 000 00 00',
-                ),
+                decoration: const InputDecoration(labelText: 'Teléfono de contacto', hintText: '+57 300 000 00 00'),
               ),
             ),
             const SizedBox(height: 16),
@@ -456,20 +473,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 controller: _nitOrUrl,
                 textInputAction: TextInputAction.done,
                 onFieldSubmitted: (_) => _submitComercio(),
-                decoration: const InputDecoration(
-                  labelText: 'NIT/RUT o enlace de tu página',
-                  hintText: 'https://',
-                ),
+                decoration: const InputDecoration(labelText: 'NIT/RUT o enlace de tu página', hintText: 'https://'),
               ),
             ),
             const SizedBox(height: 12),
             // Aviso de verificación manual (como en el Figma)
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF3EEFF),
-                borderRadius: BorderRadius.circular(10),
-              ),
+              decoration: BoxDecoration(color: const Color(0xFFF3EEFF), borderRadius: BorderRadius.circular(10)),
               child: const Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -484,17 +495,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ],
               ),
             ),
-            if (_error?.message != null) ...[
-              const SizedBox(height: 12),
-              _ErrorBanner(message: _error!.message),
-            ],
+            if (_error?.message != null) ...[const SizedBox(height: 12), _ErrorBanner(message: _error!.message)],
             const SizedBox(height: 24),
             FilledButton(
               key: const Key('register.submit'),
               onPressed: _submitting ? null : _submitComercio,
-              child: _submitting
-                  ? const Text('Enviando...')
-                  : const Text('Crear cuenta y enviar'),
+              child: _submitting ? const Text('Enviando...') : const Text('Crear cuenta y enviar'),
             ),
           ],
         ),
@@ -515,16 +521,8 @@ class _AccountTypeSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return SegmentedButton<AccountType>(
       segments: const [
-        ButtonSegment(
-          value: AccountType.user,
-          label: Text('Persona'),
-          icon: Icon(Icons.person_outline),
-        ),
-        ButtonSegment(
-          value: AccountType.merchant,
-          label: Text('Comercio'),
-          icon: Icon(Icons.storefront_outlined),
-        ),
+        ButtonSegment(value: AccountType.user, label: Text('Persona'), icon: Icon(Icons.person_outline)),
+        ButtonSegment(value: AccountType.merchant, label: Text('Comercio'), icon: Icon(Icons.storefront_outlined)),
       ],
       selected: {value},
       showSelectedIcon: false,
@@ -643,12 +641,15 @@ class _PrivacyCheckbox extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
             controlAffinity: ListTileControlAffinity.leading,
             value: value,
-            onChanged: enabled ? (v) { onChanged(v ?? false); field.didChange(v ?? false); } : null,
+            onChanged: enabled
+                ? (v) {
+                    onChanged(v ?? false);
+                    field.didChange(v ?? false);
+                  }
+                : null,
             title: const Text(_privacyText, style: TextStyle(fontSize: 13)),
           ),
-          if (field.hasError)
-            Text(field.errorText!,
-              style: const TextStyle(color: Color(0xFFD32F2F), fontSize: 12)),
+          if (field.hasError) Text(field.errorText!, style: const TextStyle(color: Color(0xFFD32F2F), fontSize: 12)),
         ],
       ),
     );
