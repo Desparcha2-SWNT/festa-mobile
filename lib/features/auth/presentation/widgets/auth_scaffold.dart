@@ -5,13 +5,7 @@ import '../../../../app/theme.dart';
 /// Estructura común de las pantallas de acceso (login, registro).
 /// Muestra la corona de Festa, título grande, subtítulo y el formulario centrado.
 class AuthScaffold extends StatelessWidget {
-  const AuthScaffold({
-    super.key,
-    required this.title,
-    required this.subtitle,
-    required this.child,
-    this.errorMessage,
-  });
+  const AuthScaffold({super.key, required this.title, required this.subtitle, required this.child, this.errorMessage});
 
   final String title;
   final String subtitle;
@@ -44,15 +38,9 @@ class AuthScaffold extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    subtitle,
-                    style: theme.textTheme.bodyLarge?.copyWith(color: const Color(0xFF555555)),
-                  ),
+                  Text(subtitle, style: theme.textTheme.bodyLarge?.copyWith(color: const Color(0xFF555555))),
                   const SizedBox(height: 28),
-                  if (errorMessage != null) ...[
-                    _ErrorBanner(message: errorMessage!),
-                    const SizedBox(height: 16),
-                  ],
+                  if (errorMessage != null) ...[_ErrorBanner(message: errorMessage!), const SizedBox(height: 16)],
                   child,
                 ],
               ),
@@ -70,11 +58,7 @@ class _FestaCrown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Image(
-      image: AssetImage('assets/images/logo_festa.png'),
-      width: 72,
-      semanticLabel: 'Festa',
-    );
+    return const Image(image: AssetImage('assets/images/logo_festa.png'), width: 72, semanticLabel: 'Festa');
   }
 }
 
@@ -100,10 +84,7 @@ class _ErrorBanner extends StatelessWidget {
               const Icon(Icons.error_outline, color: Color(0xFFD32F2F), size: 20),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(
-                  message,
-                  style: const TextStyle(color: Color(0xFFD32F2F), fontSize: 14),
-                ),
+                child: Text(message, style: const TextStyle(color: Color(0xFFD32F2F), fontSize: 14)),
               ),
             ],
           ),

@@ -46,8 +46,6 @@ abstract final class FestaTheme {
         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
       ),
     ),
-    textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(foregroundColor: primary),
-    ),
+    textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: primary)),
   );
 }

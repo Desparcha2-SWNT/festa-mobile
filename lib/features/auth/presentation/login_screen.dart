@@ -99,9 +99,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               FilledButton(
                 key: const Key('login.submit'),
                 onPressed: _submitting ? null : _submit,
-                child: _submitting
-                    ? const Text('Iniciando sesión...')
-                    : const Text('Iniciar sesión'),
+                child: _submitting ? const Text('Iniciando sesión...') : const Text('Iniciar sesión'),
               ),
               const SizedBox(height: 20),
               // Divisor con círculo (Figma: separador entre botones)
@@ -110,9 +108,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               // Botón de Google (el backend soporta POST /auth/google; la app aún no implementa el flujo)
               OutlinedButton.icon(
                 key: const Key('login.google'),
-                onPressed: _submitting ? null : () {
-                  // TODO(SCRUM-?): implementar flujo OAuth de Google en la app
-                },
+                onPressed: _submitting
+                    ? null
+                    : () {
+                        // TODO(SCRUM-?): implementar flujo OAuth de Google en la app
+                      },
                 icon: const _GoogleLogo(),
                 label: const Text('Continuar con Google'),
               ),
@@ -150,10 +150,7 @@ class _CredentialsError extends StatelessWidget {
             const Icon(Icons.error_outline, color: Color(0xFFD32F2F), size: 18),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(color: Color(0xFFD32F2F), fontSize: 13),
-              ),
+              child: Text(message, style: const TextStyle(color: Color(0xFFD32F2F), fontSize: 13)),
             ),
           ],
         ),
@@ -187,11 +184,7 @@ class _GoogleLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 20,
-      height: 20,
-      child: CustomPaint(painter: _GoogleLogoPainter()),
-    );
+    return SizedBox(width: 20, height: 20, child: CustomPaint(painter: _GoogleLogoPainter()));
   }
 }
 
@@ -204,23 +197,41 @@ class _GoogleLogoPainter extends CustomPainter {
     // Arco rojo (superior)
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: r),
-      -1.57, 3.14, false,
-      Paint()..color = const Color(0xFFEA4335)..style = PaintingStyle.stroke..strokeWidth = size.width * 0.18,
+      -1.57,
+      3.14,
+      false,
+      Paint()
+        ..color = const Color(0xFFEA4335)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.width * 0.18,
     );
     // Arco verde (inferior izq)
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: r),
-      1.57, 1.57, false,
-      Paint()..color = const Color(0xFF34A853)..style = PaintingStyle.stroke..strokeWidth = size.width * 0.18,
+      1.57,
+      1.57,
+      false,
+      Paint()
+        ..color = const Color(0xFF34A853)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.width * 0.18,
     );
     // Arco amarillo (inferior der)
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: r),
-      0, 1.57, false,
-      Paint()..color = const Color(0xFFFBBC05)..style = PaintingStyle.stroke..strokeWidth = size.width * 0.18,
+      0,
+      1.57,
+      false,
+      Paint()
+        ..color = const Color(0xFFFBBC05)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.width * 0.18,
     );
     // Línea azul horizontal (ala derecha)
-    final paint = Paint()..color = const Color(0xFF4285F4)..strokeWidth = size.width * 0.18..strokeCap = StrokeCap.round;
+    final paint = Paint()
+      ..color = const Color(0xFF4285F4)
+      ..strokeWidth = size.width * 0.18
+      ..strokeCap = StrokeCap.round;
     canvas.drawLine(center, Offset(size.width, center.dy), paint);
   }
 
