@@ -52,13 +52,19 @@ class AuthScaffold extends StatelessWidget {
   }
 }
 
-/// Ícono de corona rosa de Festa (logo real desde assets).
+/// Corona rosa de Festa (como en el Figma; el logo completo va solo en el splash).
+///
+/// Va dentro de un [Align] porque en una columna con `stretch` la imagen recibiría el ancho completo
+/// y se vería gigante, ignorando su tamaño.
 class _FestaCrown extends StatelessWidget {
   const _FestaCrown();
 
   @override
   Widget build(BuildContext context) {
-    return const Image(image: AssetImage('assets/images/logo_festa.png'), width: 72, semanticLabel: 'Festa');
+    return const Align(
+      alignment: Alignment.centerLeft,
+      child: Image(image: AssetImage('assets/images/corona_festa.png'), height: 44, semanticLabel: 'Festa'),
+    );
   }
 }
 
