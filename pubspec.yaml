@@ -24,3 +24,11 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+  # Tipografías del Figma (OFL, ver assets/fonts/OFL-*.txt). Son fuentes variables: el peso sale del eje wght.
+  fonts:
+    - family: BricolageGrotesque
+      fonts:
+        - asset: assets/fonts/BricolageGrotesque.ttf
+    - family: PlusJakartaSans
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans.ttf
