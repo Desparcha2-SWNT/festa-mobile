@@ -3,9 +3,12 @@ import 'package:festa/features/auth/data/auth_api.dart';
 import 'package:festa/features/auth/data/token_storage.dart';
 import 'package:festa/features/auth/domain/account.dart';
 import 'package:festa/features/auth/domain/auth_session.dart';
+import 'package:festa/features/merchant/data/merchant_api.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockAuthApi extends Mock implements AuthApi {}
+
+class MockMerchantApi extends Mock implements MerchantApi {}
 
 class InMemoryTokenStorage implements TokenStorage {
   InMemoryTokenStorage([this.refreshToken]);
@@ -34,3 +37,9 @@ const invalidRefresh = ApiException(
 );
 
 const networkFailure = ApiException(code: ApiException.networkError, message: 'Sin conexión');
+
+const merchantSession = AuthSession(
+  accessToken: 'access-m',
+  refreshToken: 'refresh-m',
+  account: Account(id: 'm1', email: 'ana@escuelaing.edu.co', displayName: 'Ana', role: Role.merchant),
+);
