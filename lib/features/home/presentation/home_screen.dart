@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:go_router/go_router.dart';
+
+import '../../../app/routes.dart';
 import '../../auth/application/session_controller.dart';
 
 /// Pantalla de inicio provisional: confirma la sesión y permite cerrarla (SCRUM-51).
@@ -15,6 +18,12 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Festa'),
         actions: [
+          IconButton(
+            key: const Key('home.profile'),
+            tooltip: 'Mi perfil',
+            icon: const Icon(Icons.person_outline),
+            onPressed: () => context.push(Routes.profile),
+          ),
           IconButton(
             key: const Key('home.logout'),
             tooltip: 'Cerrar sesión',
