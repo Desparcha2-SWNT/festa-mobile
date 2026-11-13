@@ -23,10 +23,7 @@ abstract final class FestaTheme {
   static ThemeData dark() => _build(Brightness.dark);
 
   static ThemeData _build(Brightness brightness) {
-    final scheme = ColorScheme.fromSeed(
-      seedColor: FestaColors.bgBrand,
-      brightness: brightness,
-    ).copyWith(
+    final scheme = ColorScheme.fromSeed(seedColor: FestaColors.bgBrand, brightness: brightness).copyWith(
       primary: FestaColors.bgBrand,
       onPrimary: FestaColors.textOnBrand,
       primaryContainer: FestaColors.bgBrandSoft,
