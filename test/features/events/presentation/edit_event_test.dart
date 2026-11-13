@@ -16,10 +16,12 @@ import 'package:mocktail/mocktail.dart';
 import '../../../support/fakes.dart';
 
 /// Evento publicado y vigente (fechas lejanas para que la prueba no dependa del día en que corre).
+// En hora local, para que no cruce la medianoche en ninguna zona horaria (el CI corre en UTC):
+// el formulario solo admite eventos que empiezan y terminan el mismo día.
 Event upcomingEvent({String status = 'published'}) => Event.fromJson({
   ...eventJson(),
-  'startsAt': '2099-01-01T23:00:00.000Z',
-  'endsAt': '2099-01-02T02:00:00.000Z',
+  'startsAt': DateTime(2099, 1, 1, 18).toUtc().toIso8601String(),
+  'endsAt': DateTime(2099, 1, 1, 21).toUtc().toIso8601String(),
   'status': status,
 });
 
