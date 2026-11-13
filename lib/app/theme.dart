@@ -1,49 +1,83 @@
 import 'package:flutter/material.dart';
 
-/// Tema base de Festa. Centraliza colores y estilos para que las pantallas no los repitan.
-///
-/// Colores de la página «Fundamentos» del Figma. El texto sobre el magenta de marca va en
-/// tinta y no en blanco: el blanco no alcanza el contraste 4.5:1.
+import 'design/design.dart';
+
+/// Tema base de Festa, construido con los tokens del Figma (`lib/app/design/`).
+/// Las pantallas no deben repetir colores ni estilos: usan este tema y los tokens.
 abstract final class FestaTheme {
-  static const brand = Color(0xFFF0127E);
-  static const brandDark = Color(0xFFC20A65);
-  static const brandSoft = Color(0xFFFFE3F0);
-  static const ink = Color(0xFF111111);
-  static const success = Color(0xFF1E9E5A);
+  /// Magenta principal (#F0127E). Se conserva por compatibilidad: prefiere [FestaColors.bgBrand].
+  static const primary = FestaColors.bgBrand;
+
+  /// Tinta (#111111). Se conserva por compatibilidad: prefiere [FestaColors.textPrimary].
+  static const ink = FestaColors.textPrimary;
+
+  /// Magenta de marca. Alias de [primary] que usan las pantallas del mapa y los eventos.
+  static const brand = FestaColors.bgBrand;
 
   /// Fondo de los avisos informativos («IA / Festi» en el Figma).
-  static const infoSurface = Color(0xFFD9CCFF);
+  static const infoSurface = FestaColors.bgIa;
 
-  static ThemeData light() => _build(
-    ColorScheme.fromSeed(seedColor: brand).copyWith(
-      primary: brand,
-      onPrimary: ink,
-      primaryContainer: brandSoft,
-      onPrimaryContainer: brandDark,
-      tertiary: success,
-    ),
-  );
+  static ThemeData light() => _build(Brightness.light);
 
-  static ThemeData dark() => _build(
-    ColorScheme.fromSeed(seedColor: brand, brightness: Brightness.dark).copyWith(primary: brand, onPrimary: ink),
-  );
+  // El Figma solo define el modo claro; el oscuro queda pendiente. Mientras tanto la app siempre usa el claro.
+  static ThemeData dark() => _build(Brightness.dark);
 
-  static ThemeData _build(ColorScheme colorScheme) {
-    const buttonSize = Size(64, 48);
-    final buttonShape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(24));
+  static ThemeData _build(Brightness brightness) {
+    final scheme = ColorScheme.fromSeed(
+      seedColor: FestaColors.bgBrand,
+      brightness: brightness,
+    ).copyWith(
+      primary: FestaColors.bgBrand,
+      onPrimary: FestaColors.textOnBrand,
+      primaryContainer: FestaColors.bgBrandSoft,
+      onPrimaryContainer: FestaColors.textBrand,
+      tertiary: FestaColors.success,
+      error: FestaColors.error,
+    );
+    OutlineInputBorder border(Color color, [double width = 1]) => OutlineInputBorder(
+      borderRadius: FestaRadius.mdAll,
+      borderSide: BorderSide(color: color, width: width),
+    );
     return ThemeData(
-      colorScheme: colorScheme,
-      inputDecorationTheme: const InputDecorationTheme(border: OutlineInputBorder()),
+      fontFamily: FestaText.bodyFont,
+      textTheme: FestaText.textTheme,
+      colorScheme: scheme,
+      scaffoldBackgroundColor: FestaColors.bg,
+      inputDecorationTheme: InputDecorationTheme(
+        border: border(FestaColors.border),
+        enabledBorder: border(FestaColors.border),
+        focusedBorder: border(FestaColors.borderBrand, 2),
+        errorBorder: border(FestaColors.error),
+        focusedErrorBorder: border(FestaColors.error, 2),
+        filled: true,
+        fillColor: FestaColors.bg,
+        labelStyle: FestaText.bodyL.copyWith(color: FestaColors.textSecondary),
+        hintStyle: FestaText.bodyL.copyWith(color: FestaColors.textDisabled),
+        errorStyle: FestaText.caption.copyWith(color: FestaColors.textError),
+        contentPadding: const EdgeInsets.symmetric(horizontal: FestaSpace.md, vertical: 14),
+      ),
       filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(minimumSize: buttonSize, shape: buttonShape),
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(64, 52),
+          backgroundColor: FestaColors.bgBrand,
+          foregroundColor: FestaColors.textOnBrand, // negro sobre magenta (AA)
+          disabledBackgroundColor: FestaColors.bgMuted,
+          disabledForegroundColor: FestaColors.textDisabled,
+          shape: const StadiumBorder(),
+          textStyle: FestaText.labelL,
+        ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: buttonSize,
-          shape: buttonShape,
-          foregroundColor: colorScheme.onSurface,
-          side: BorderSide(color: colorScheme.onSurface),
+          minimumSize: const Size(64, 52),
+          foregroundColor: FestaColors.textPrimary,
+          side: const BorderSide(color: FestaColors.border, width: 1.5),
+          shape: const StadiumBorder(),
+          textStyle: FestaText.labelL,
         ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(foregroundColor: FestaColors.textBrand, textStyle: FestaText.labelM),
       ),
     );
   }

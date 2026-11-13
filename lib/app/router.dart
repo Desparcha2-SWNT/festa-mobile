@@ -19,6 +19,7 @@ import '../features/merchant/domain/merchant_profile.dart';
 import '../features/merchant/presentation/merchant_form_screen.dart';
 import '../features/merchant/presentation/merchant_status_screen.dart';
 import '../features/merchant/presentation/my_merchant_screen.dart';
+import '../features/splash/presentation/splash_screen.dart';
 import 'app_shell.dart';
 import 'routes.dart';
 
@@ -48,7 +49,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       merchant: ref.read(merchantControllerProvider),
     ),
     routes: [
-      GoRoute(path: Routes.splash, builder: (_, _) => const _SplashScreen()),
+      GoRoute(path: Routes.splash, builder: (_, _) => const SplashScreen()),
       GoRoute(path: Routes.login, builder: (_, _) => const LoginScreen()),
       GoRoute(path: Routes.register, builder: (_, _) => const RegisterScreen()),
       GoRoute(path: Routes.locationConsent, builder: (_, _) => const LocationConsentScreen()),
@@ -126,11 +127,4 @@ String? _merchantGate(String location, AsyncValue<MerchantProfile?> merchant) {
   if (location == Routes.merchantForm) return location;
   if (profile.status == MerchantStatus.verified) return null;
   return Routes.merchantStatus;
-}
-
-class _SplashScreen extends StatelessWidget {
-  const _SplashScreen();
-
-  @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: CircularProgressIndicator()));
 }

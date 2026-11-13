@@ -30,6 +30,7 @@ class AuthRepository {
     required String password,
     required String displayName,
     required AccountType accountType,
+    // acceptedPrivacyPolicy: se valida en la UI (Ley 1581) pero no se envía al backend.
     required bool acceptedPrivacyPolicy,
   }) async {
     final session = await _api.register(
@@ -37,7 +38,6 @@ class AuthRepository {
       password: password,
       displayName: displayName,
       accountType: accountType,
-      acceptedPrivacyPolicy: acceptedPrivacyPolicy,
     );
     return _start(session);
   }

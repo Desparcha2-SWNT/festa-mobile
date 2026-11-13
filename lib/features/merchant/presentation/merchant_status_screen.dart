@@ -152,7 +152,12 @@ class _StatusLayout extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            Text(title, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall),
+            Text(
+              title,
+              key: const Key('merchant.status.title'),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
             const SizedBox(height: 16),
             ...body,
           ],

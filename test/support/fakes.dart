@@ -135,3 +135,9 @@ const testMerchantDraft = MerchantDraft(
 
 MerchantProfile testMerchantProfile(MerchantStatus status, {String? rejectionReason}) =>
     MerchantProfile(draft: testMerchantDraft, status: status, rejectionReason: rejectionReason);
+
+const merchantSession = AuthSession(
+  accessToken: 'access-m',
+  refreshToken: 'refresh-m',
+  account: Account(id: 'm1', email: 'ana@escuelaing.edu.co', displayName: 'Ana', role: Role.merchant),
+);

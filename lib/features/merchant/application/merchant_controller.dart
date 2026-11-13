@@ -1,12 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/network/http_providers.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/account.dart';
-import '../data/merchant_api.dart';
 import '../domain/merchant_profile.dart';
-
-final merchantApiProvider = Provider<MerchantApi>((ref) => MerchantApi(ref.watch(authenticatedDioProvider)));
+import 'merchant_providers.dart';
 
 /// Perfil de comercio de la cuenta autenticada (RF3).
 ///
