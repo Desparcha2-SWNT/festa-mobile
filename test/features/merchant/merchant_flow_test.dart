@@ -11,6 +11,7 @@ import 'package:festa/features/location/domain/geo_point.dart';
 import 'package:festa/features/location/domain/location_consent.dart';
 import 'package:festa/features/map/presentation/map_view.dart';
 import 'package:festa/features/merchant/application/merchant_controller.dart';
+import 'package:festa/features/merchant/application/merchant_providers.dart';
 import 'package:festa/features/merchant/domain/merchant_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
