@@ -11,16 +11,26 @@ abstract final class FestaTheme {
   /// Tinta (#111111). Se conserva por compatibilidad: prefiere [FestaColors.textPrimary].
   static const ink = FestaColors.textPrimary;
 
+  /// Magenta de marca. Alias de [primary] que usan las pantallas del mapa y los eventos.
+  static const brand = FestaColors.bgBrand;
+
+  /// Fondo de los avisos informativos («IA / Festi» en el Figma).
+  static const infoSurface = FestaColors.bgIa;
+
   static ThemeData light() => _build(Brightness.light);
 
   // El Figma solo define el modo claro; el oscuro queda pendiente. Mientras tanto la app siempre usa el claro.
   static ThemeData dark() => _build(Brightness.dark);
 
   static ThemeData _build(Brightness brightness) {
-    final scheme = ColorScheme.fromSeed(
-      seedColor: FestaColors.bgBrand,
-      brightness: brightness,
-    ).copyWith(primary: FestaColors.bgBrand, onPrimary: FestaColors.textOnBrand, error: FestaColors.error);
+    final scheme = ColorScheme.fromSeed(seedColor: FestaColors.bgBrand, brightness: brightness).copyWith(
+      primary: FestaColors.bgBrand,
+      onPrimary: FestaColors.textOnBrand,
+      primaryContainer: FestaColors.bgBrandSoft,
+      onPrimaryContainer: FestaColors.textBrand,
+      tertiary: FestaColors.success,
+      error: FestaColors.error,
+    );
     OutlineInputBorder border(Color color, [double width = 1]) => OutlineInputBorder(
       borderRadius: FestaRadius.mdAll,
       borderSide: BorderSide(color: color, width: width),

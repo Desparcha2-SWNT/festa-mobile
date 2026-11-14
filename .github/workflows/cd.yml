@@ -90,10 +90,16 @@ jobs:
             echo "::notice::No hay variable de repositorio API_BASE_URL: el APK queda apuntando al gateway local (solo sirve en el emulador). Configurarla cuando el gateway esté desplegado."
           fi
 
+      # MAPBOX_ACCESS_TOKEN es el token público (pk.…) de Mapbox, guardado como secreto del repositorio
+      # (Settings → Secrets → Actions) para no dejarlo en el código. Sin él, el mapa avisa que no está configurado.
       - name: Compilar APK de release
         env:
           API_URL: ${{ steps.api.outputs.url }}
-        run: flutter build apk --release ${API_URL:+--dart-define=API_BASE_URL=$API_URL}
+          MAPBOX_TOKEN: ${{ secrets.MAPBOX_ACCESS_TOKEN }}
+        run: |
+          flutter build apk --release \
+            ${API_URL:+--dart-define=API_BASE_URL=$API_URL} \
+            ${MAPBOX_TOKEN:+--dart-define=MAPBOX_ACCESS_TOKEN=$MAPBOX_TOKEN}
 
       - name: Preparar el artefacto
         id: artefacto
