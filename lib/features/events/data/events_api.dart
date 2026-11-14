@@ -11,19 +11,16 @@ class EventsApi {
 
   final Dio _dio;
 
-  /// Eventos publicados y próximos alrededor de [center] (SCRUM-74).
-  ///
-  /// PENDIENTE: el endpoint aún no existe en event-service. Este es el contrato propuesto a
-  /// SCRUM-74; si cambia, solo cambia este método:
-  /// `GET /api/events/nearby?lat=&lng=&radiusKm=` → `{"items": [Evento, ...]}`.
+  /// Eventos activos y próximos alrededor de [center] (SCRUM-74), con la búsqueda del mapa de
+  /// event-service: `GET /api/events?lat=&lng=&radiusKm=` → `{"items": [resumen, ...]}`.
   Future<List<Event>> nearby(GeoPoint center, {required double radiusKm}) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
-        '/api/events/nearby',
+        '/api/events',
         queryParameters: {'lat': center.latitude, 'lng': center.longitude, 'radiusKm': radiusKm},
       );
       final items = response.data!['items'] as List<dynamic>;
-      return [for (final item in items) Event.fromJson(item as Map<String, dynamic>)];
+      return [for (final item in items) Event.fromSearchJson(item as Map<String, dynamic>)];
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

@@ -70,6 +70,32 @@ class Event {
     );
   }
 
+  /// Resumen que devuelve la búsqueda del mapa (`GET /api/events`, `searchEvents` en event-service).
+  ///
+  /// Trae solo lo necesario para pintar los pines: no incluye descripción, dirección ni tipo de
+  /// organizador, que quedan vacíos. El detalle siempre se vuelve a pedir completo con `byId`.
+  factory Event.fromSearchJson(Map<String, dynamic> json) {
+    final location = json['location'] as Map<String, dynamic>;
+    return Event(
+      id: json['eventId'] as String,
+      title: json['title'] as String,
+      description: '',
+      descriptionAiGenerated: false,
+      category: EventCategory.fromApi(json['category'] as String),
+      startsAt: DateTime.parse(json['startsAt'] as String),
+      endsAt: DateTime.parse(json['endsAt'] as String),
+      venueName: json['venueName'] as String? ?? '',
+      venueAddress: '',
+      location: GeoPoint(latitude: (location['lat'] as num).toDouble(), longitude: (location['lng'] as num).toDouble()),
+      organizerName: json['organizerName'] as String? ?? '',
+      organizerIsMerchant: false,
+      ticketed: json['ticketed'] as bool? ?? false,
+      priceCents: json['priceCents'] as int? ?? 0,
+      capacity: json['capacity'] as int?,
+      coverImageUrl: json['coverImageUrl'] as String?,
+    );
+  }
+
   final String id;
   final String title;
   final String description;
