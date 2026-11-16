@@ -1,6 +1,6 @@
 # festa-mobile
 
-App de Festa para iOS y Android (Flutter): la de los usuarios y el panel simple para comercios (RF15).
+App de Festa para iOS y Android (Flutter): la de los usuarios y el panel simple para comercios (RF3, RF15).
 
 ## Correr
 
@@ -15,10 +15,19 @@ Luego corre la app:
 ```bash
 flutter pub get
 flutter run                                                   # emulador Android → http://10.0.2.2:8000
-flutter run --dart-define=API_BASE_URL=http://localhost:8000  # simulador iOS o web
+flutter run -d chrome                                         # Chrome → http://localhost:8000
+flutter run --dart-define=API_BASE_URL=http://localhost:8000  # simulador iOS u otra URL local
 ```
 
 `API_BASE_URL` es la URL del gateway. En producción debe ser `https://`: el tráfico HTTP sin cifrar solo está permitido en los builds de debug de Android.
+
+## Perfil de comercio (RF3)
+
+Al iniciar sesión con una cuenta de comercio, la app permite enviar el nombre, categoría, dirección,
+coordenadas y descripción del negocio a `/api/users/me/merchant`. El servicio devuelve el estado
+`PENDING`, `VERIFIED` o `REJECTED`; si la solicitud se rechaza, la app muestra el motivo y permite
+corregir y reenviar el perfil. En las vistas de estado se puede deslizar hacia abajo para consultar
+el resultado más reciente. La entrega de notificaciones push depende de `festa-notification-service`.
 
 ## Calidad
 
