@@ -53,10 +53,6 @@ class MerchantStatus {
   bool get rejected => verificationStatus == 'REJECTED';
 }
 
-  bool get approved => verificationStatus == 'APPROVED';
-  bool get rejected => verificationStatus == 'REJECTED';
-}
-
 /// Endpoints de comercio de user-service, expuestos por el gateway bajo `/api/users`.
 /// Exigen JWT: se construye con el cliente autenticado.
 class MerchantApi {
