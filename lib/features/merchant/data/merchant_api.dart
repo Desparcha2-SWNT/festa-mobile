@@ -4,6 +4,9 @@ import '../../../core/network/api_exception.dart';
 import '../domain/merchant_profile.dart';
 
 /// Solicitud del contrato de user-service. Teléfono y NIT/RUT aún no son aceptados por el backend.
+
+/// Solicitud de comercio que recibe festa-user-service (`SubmitMerchantRequest`).
+/// Teléfono y NIT/RUT no se envían: el backend todavía no los acepta (decisión pendiente del equipo).
 class MerchantRequest {
   const MerchantRequest({
     required this.businessName,
@@ -15,6 +18,8 @@ class MerchantRequest {
   });
 
   final String businessName;
+
+  /// Valor del enum del backend: CULTURAL, MUSICAL, DEPORTIVO, GASTRONOMICO u OTRO.
   final String category;
   final String address;
   final double latitude;
@@ -32,6 +37,7 @@ class MerchantRequest {
 }
 
 /// Vista resumida del estado, compatible con el contrato usado desde develop.
+/// Estado de verificación del comercio, tal como lo devuelve `MerchantResponse`.
 class MerchantStatus {
   const MerchantStatus({required this.verificationStatus, this.rejectionReason});
 
@@ -47,6 +53,12 @@ class MerchantStatus {
   bool get rejected => verificationStatus == 'REJECTED';
 }
 
+  bool get approved => verificationStatus == 'APPROVED';
+  bool get rejected => verificationStatus == 'REJECTED';
+}
+
+/// Endpoints de comercio de user-service, expuestos por el gateway bajo `/api/users`.
+/// Exigen JWT: se construye con el cliente autenticado.
 class MerchantApi {
   MerchantApi(this._dio);
 

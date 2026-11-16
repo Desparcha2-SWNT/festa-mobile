@@ -19,6 +19,32 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   mocktail: ^1.0.5
+  flutter_launcher_icons: ^0.14.4
+
+# Ícono de la app: solo la corona de Festa (sin el texto). Regenerar con:
+#   dart run flutter_launcher_icons
+flutter_launcher_icons:
+  image_path: assets/icon/icono_festa.png
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: assets/icon/icono_festa_primer_plano.png
+  web:
+    generate: true
+    image_path: assets/icon/icono_festa.png
+    background_color: "#FFFFFF"
+    theme_color: "#F0127E"
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/
+  # Tipografías del Figma (OFL, ver assets/fonts/OFL-*.txt). Son fuentes variables: el peso sale del eje wght.
+  fonts:
+    - family: BricolageGrotesque
+      fonts:
+        - asset: assets/fonts/BricolageGrotesque.ttf
+    - family: PlusJakartaSans
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans.ttf

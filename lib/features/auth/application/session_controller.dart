@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../merchant/application/merchant_providers.dart';
+import '../../merchant/data/merchant_api.dart';
 import '../domain/account.dart';
 import 'auth_providers.dart';
 
@@ -44,6 +46,33 @@ class SessionController extends AsyncNotifier<Account?> {
           accountType: accountType,
           acceptedPrivacyPolicy: acceptedPrivacyPolicy,
         );
+    state = AsyncData(account);
+  }
+
+  Account? _unpublishedMerchant;
+
+  /// Registro de comercio en dos llamadas: crea la cuenta en auth-service y envía la solicitud a
+  /// user-service. La sesión se publica solo cuando la solicitud queda enviada, para que el router
+  /// no saque al usuario del registro a mitad de camino. Si la solicitud falla, la cuenta ya existe:
+  /// al reintentar se omite el registro y solo se reenvía la solicitud.
+  Future<void> registerMerchant({
+    required String email,
+    required String password,
+    required MerchantRequest request,
+    required bool acceptedPrivacyPolicy,
+  }) async {
+    _unpublishedMerchant ??= await ref
+        .read(authRepositoryProvider)
+        .register(
+          email: email,
+          password: password,
+          displayName: request.businessName,
+          accountType: AccountType.merchant,
+          acceptedPrivacyPolicy: acceptedPrivacyPolicy,
+        );
+    await ref.read(merchantApiProvider).submit(request);
+    final account = _unpublishedMerchant!;
+    _unpublishedMerchant = null;
     state = AsyncData(account);
   }
 
