@@ -10,8 +10,9 @@
 # despliegue en el Learner Lab da una URL distinta). La URL puede pasarse como entrada `api_base_url`;
 # si se deja vacía, se usa la variable de repositorio API_BASE_URL.
 #
-# El release se firma con la llave de debug (lo que trae la plantilla de Flutter por defecto):
-# suficiente para instalar en los celulares del pilot, no para publicarlo en una tienda.
+# Firma: al publicar desde main se usa la llave propia (secretos ANDROID_*). Si faltan, la publicación
+# falla. En PRs y ejecuciones manuales sobre otras ramas no se inyecta ningún secreto de firma y el APK
+# sale con la llave de debug (solo para pruebas, no para el pilot).
 #
 # API_BASE_URL: mientras no haya un gateway desplegado (SCRUM-134, pendiente del laboratorio
 # de AWS), el APK apunta por defecto a http://10.0.2.2:8000 (solo sirve en el emulador). Cuando
@@ -90,7 +91,25 @@ jobs:
             echo "::notice::No hay variable de repositorio API_BASE_URL: el APK queda apuntando al gateway local (solo sirve en el emulador). Configurarla cuando el gateway esté desplegado."
           fi
 
-      - name: Decodificar la llave de firma (solo si hay secreto)
+      - name: Validar credenciales de firma (solo al publicar)
+        if: steps.publicar.outputs.si == 'true'
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          faltan=""
+          for var in KEYSTORE_B64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!var}" ]; then faltan="$faltan $var"; fi
+          done
+          if [ -n "$faltan" ]; then
+            echo "::error::No se publica el release: faltan los secretos de firma:$faltan. Sin ellos el APK saldría firmado con debug y después no podría actualizarse."
+            exit 1
+          fi
+
+      - name: Decodificar la llave de firma (solo al publicar)
+        if: steps.publicar.outputs.si == 'true'
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
@@ -102,9 +121,11 @@ jobs:
       - name: Compilar APK de release
         env:
           API_URL: ${{ steps.api.outputs.url }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          # Las contraseñas solo se inyectan en publicaciones desde main; en PRs y ejecuciones manuales
+          # sobre otras ramas el build sale con la llave de debug y no ve ningún secreto de firma.
+          ANDROID_KEYSTORE_PASSWORD: ${{ steps.publicar.outputs.si == 'true' && secrets.ANDROID_KEYSTORE_PASSWORD || '' }}
+          ANDROID_KEY_ALIAS: ${{ steps.publicar.outputs.si == 'true' && secrets.ANDROID_KEY_ALIAS || '' }}
+          ANDROID_KEY_PASSWORD: ${{ steps.publicar.outputs.si == 'true' && secrets.ANDROID_KEY_PASSWORD || '' }}
         run: flutter build apk --release ${API_URL:+--dart-define=API_BASE_URL=$API_URL}
 
       - name: Preparar el artefacto
