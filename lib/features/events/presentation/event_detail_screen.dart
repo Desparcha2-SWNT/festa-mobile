@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/design/design.dart';
 import '../../../app/routes.dart';
 import '../../../core/network/api_exception.dart';
 import '../application/events_providers.dart';
@@ -159,7 +160,7 @@ class _Cover extends StatelessWidget {
             child: Chip(
               label: Text(event.category.label),
               backgroundColor: event.category.color,
-              labelStyle: const TextStyle(color: Colors.white),
+              labelStyle: const TextStyle(color: FestaColors.textPrimary),
               side: BorderSide.none,
               visualDensity: VisualDensity.compact,
             ),
