@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/design/design.dart';
 import '../../../app/routes.dart';
 import '../../../core/network/api_exception.dart';
 import '../application/events_providers.dart';
@@ -121,7 +122,7 @@ class _MyEventCard extends StatelessWidget {
 
   (String, Color) _statusChip(ColorScheme colors) => switch (event.status) {
     EventStatus.published when event.endsAt.isBefore(DateTime.now()) => ('Terminado', colors.outline),
-    EventStatus.published => ('Publicado', colors.tertiary),
+    EventStatus.published => ('Publicado', FestaColors.textSuccess),
     EventStatus.hidden => ('Oculto por moderación', colors.error),
     EventStatus.cancelled => ('Cancelado', colors.error),
     EventStatus.expired => ('Terminado', colors.outline),

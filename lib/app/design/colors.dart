@@ -28,6 +28,8 @@ abstract final class FestaPalette {
   static const coral300 = Color(0xFFFF9EA6);
   static const yellow400 = Color(0xFFFFD23F);
   static const green600 = Color(0xFF1E9E5A);
+  // Verde para texto: 6,1:1 sobre blanco (AA). El green600 queda para iconos y fondos (3,4:1).
+  static const green700 = Color(0xFF15703F);
   static const red600 = Color(0xFFD64545);
   static const amber700 = Color(0xFFB7791F);
   static const red100 = Color(0xFFFBE4E1);
@@ -54,7 +56,7 @@ abstract final class FestaColors {
   static const textOnBrand = FestaPalette.ink900; // text/on-brand: negro sobre magenta (AA 4,6:1)
   static const textOnInverse = FestaPalette.white; // text/on-inverse
   static const textBrand = FestaPalette.magenta700; // text/brand
-  static const textSuccess = FestaPalette.green600; // text/success
+  static const textSuccess = FestaPalette.green700; // text/success (AA sobre blanco)
   static const textError = FestaPalette.red600; // text/error
 
   // Bordes
