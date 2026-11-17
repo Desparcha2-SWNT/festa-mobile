@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/design/design.dart';
 import '../../../app/routes.dart';
 import '../../../core/network/api_exception.dart';
 import '../../auth/application/session_controller.dart';
@@ -163,7 +164,7 @@ class _Preview extends StatelessWidget {
                       child: Chip(
                         label: Text(draft.category.label),
                         backgroundColor: draft.category.color,
-                        labelStyle: const TextStyle(color: Colors.white),
+                        labelStyle: const TextStyle(color: FestaColors.textPrimary),
                         side: BorderSide.none,
                         visualDensity: VisualDensity.compact,
                       ),
