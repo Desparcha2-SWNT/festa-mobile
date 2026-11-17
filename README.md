@@ -95,9 +95,9 @@ lib/
 - Clústeres (SCRUM-77): la fuente agrupa los eventos que quedan a menos de 50 px entre sí hasta el zoom 14. El círculo
   magenta muestra cuántos eventos agrupa, y al tocarlo el mapa se acerca justo hasta donde se separan. El mapa abre en
   zoom 13 (barrio, con clústeres) y al elegir un evento se acerca a 15, para que no quede dentro de un clúster.
-- **Pendiente de SCRUM-74:** `EventsApi.nearby` usa el contrato propuesto
-  `GET /api/events/nearby?lat=&lng=&radiusKm=` → `{"items": [Evento]}`. Hasta que event-service lo publique, el mapa
-  muestra el aviso «No pudimos cargar los eventos».
+- **Búsqueda cercana (SCRUM-74):** `EventsApi.nearby` usa `GET /api/events?lat=&lng=&radiusKm=` → `{"items": [resumen]}`,
+  la búsqueda de event-service ya fusionada en `develop` (`src/events/search.js`, PR #9). Si el servicio no responde, el
+  mapa muestra el aviso «No pudimos cargar los eventos».
 
 ## Comercio (RF3)
 
