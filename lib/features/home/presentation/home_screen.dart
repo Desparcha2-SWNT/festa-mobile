@@ -56,7 +56,9 @@ class HomeScreen extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('¿Desactivar la ubicación?'),
-        content: const Text('Festa dejará de usar tu ubicación y mostrará eventos sin distancia. Puedes volver a activarla cuando quieras.'),
+        content: const Text(
+          'Festa dejará de usar tu ubicación y mostrará eventos sin distancia. Puedes volver a activarla cuando quieras.',
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
           FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Desactivar')),

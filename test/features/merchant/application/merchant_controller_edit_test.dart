@@ -16,20 +16,17 @@ class _FakeSession extends SessionController {
   Future<Account?> build() async => testMerchantAccount;
 }
 
-MerchantProfile _profile({
-  required String businessName,
-  required MerchantStatus status,
-  String? rejectionReason,
-}) => MerchantProfile(
-  draft: MerchantDraft(
-    businessName: businessName,
-    category: MerchantCategory.gastronomico,
-    address: 'Calle 1 # 2-3',
-    location: const GeoPoint(latitude: 4.6, longitude: -74.0),
-  ),
-  status: status,
-  rejectionReason: rejectionReason,
-);
+MerchantProfile _profile({required String businessName, required MerchantStatus status, String? rejectionReason}) =>
+    MerchantProfile(
+      draft: MerchantDraft(
+        businessName: businessName,
+        category: MerchantCategory.gastronomico,
+        address: 'Calle 1 # 2-3',
+        location: const GeoPoint(latitude: 4.6, longitude: -74.0),
+      ),
+      status: status,
+      rejectionReason: rejectionReason,
+    );
 
 MerchantDraft _draft(String businessName) => MerchantDraft(
   businessName: businessName,
@@ -73,8 +70,9 @@ void main() {
 
     await controller.save(_draft('Café Central'));
 
-    verify(() => api.update(any(that: isA<MerchantDraft>().having((d) => d.businessName, 'businessName', 'Café Central'))))
-        .called(1);
+    verify(
+      () => api.update(any(that: isA<MerchantDraft>().having((d) => d.businessName, 'businessName', 'Café Central'))),
+    ).called(1);
     verifyNever(() => api.submit(any()));
     final state = container.read(merchantControllerProvider).value!;
     expect(state.draft.businessName, 'Café Central');
@@ -83,9 +81,8 @@ void main() {
 
   test('editar un perfil verificado conserva el estado verificado en la fila devuelta', () async {
     final controller = await loadWith(_profile(businessName: 'Café', status: MerchantStatus.verified));
-    when(() => api.update(any())).thenAnswer(
-      (_) async => _profile(businessName: 'Café Central', status: MerchantStatus.verified),
-    );
+    when(() => api.update(any()))
+        .thenAnswer((_) async => _profile(businessName: 'Café Central', status: MerchantStatus.verified));
 
     await controller.save(_draft('Café Central'));
 
@@ -99,9 +96,8 @@ void main() {
     final controller = await loadWith(
       _profile(businessName: 'Café', status: MerchantStatus.rejected, rejectionReason: 'Dirección incompleta'),
     );
-    when(() => api.update(any())).thenAnswer(
-      (_) async => _profile(businessName: 'Café Central', status: MerchantStatus.pending),
-    );
+    when(() => api.update(any()))
+        .thenAnswer((_) async => _profile(businessName: 'Café Central', status: MerchantStatus.pending));
 
     await controller.save(_draft('Café Central'));
 

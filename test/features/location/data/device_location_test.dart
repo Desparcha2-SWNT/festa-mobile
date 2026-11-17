@@ -11,6 +11,7 @@ import 'package:geolocator/geolocator.dart';
 class _FakeGeolocator extends GeolocatorPlatform {
   bool serviceEnabled = true;
   LocationPermission permission = LocationPermission.whileInUse;
+
   /// Un [Position] para devolverlo, o una [Exception] para simular que no llega a tiempo.
   Object? current;
   Position? lastKnown;
@@ -73,7 +74,9 @@ void main() {
 
     await expectLater(
       location.currentPosition(),
-      throwsA(isA<LocationUnavailableException>().having((e) => e.reason, 'reason', LocationFallbackReason.serviceDisabled)),
+      throwsA(
+        isA<LocationUnavailableException>().having((e) => e.reason, 'reason', LocationFallbackReason.serviceDisabled),
+      ),
     );
     expect(platform.lastSettings, isNull);
   });
@@ -83,7 +86,9 @@ void main() {
 
     await expectLater(
       location.currentPosition(),
-      throwsA(isA<LocationUnavailableException>().having((e) => e.reason, 'reason', LocationFallbackReason.permissionDenied)),
+      throwsA(
+        isA<LocationUnavailableException>().having((e) => e.reason, 'reason', LocationFallbackReason.permissionDenied),
+      ),
     );
     expect(platform.permissionRequests, 1);
   });
@@ -93,7 +98,9 @@ void main() {
 
     await expectLater(
       location.currentPosition(),
-      throwsA(isA<LocationUnavailableException>().having((e) => e.reason, 'reason', LocationFallbackReason.permissionDenied)),
+      throwsA(
+        isA<LocationUnavailableException>().having((e) => e.reason, 'reason', LocationFallbackReason.permissionDenied),
+      ),
     );
     expect(platform.permissionRequests, 0);
   });
@@ -131,7 +138,9 @@ void main() {
 
     await expectLater(
       location.currentPosition(),
-      throwsA(isA<LocationUnavailableException>().having((e) => e.reason, 'reason', LocationFallbackReason.unavailable)),
+      throwsA(
+        isA<LocationUnavailableException>().having((e) => e.reason, 'reason', LocationFallbackReason.unavailable),
+      ),
     );
   });
 }
