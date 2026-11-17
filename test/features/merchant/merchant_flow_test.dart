@@ -103,6 +103,30 @@ void main() {
       verify(() => merchantApi.submit(any())).called(1);
       verify(() => merchantApi.update(any())).called(1);
     });
+
+    test('al cambiar de comercio pide el perfil de la cuenta nueva y no deja el del anterior', () async {
+      const otherMerchant = Account(
+        id: 'm2',
+        email: 'cafe@escuelaing.edu.co',
+        displayName: 'Café',
+        role: Role.merchant,
+      );
+      final otherProfile = testMerchantProfile(MerchantStatus.pending);
+      when(() => merchantApi.mine()).thenAnswer((_) async => testMerchantProfile(MerchantStatus.verified));
+      when(() => authApi.login(email: 'cafe@escuelaing.edu.co', password: 'secreta123'))
+          .thenAnswer((_) async => testSession('2', otherMerchant));
+      final container = containerFor(testMerchantAccount);
+      await container.read(sessionControllerProvider.future);
+      expect((await container.read(merchantControllerProvider.future))!.status, MerchantStatus.verified);
+
+      when(() => merchantApi.mine()).thenAnswer((_) async => otherProfile);
+      await container
+          .read(sessionControllerProvider.notifier)
+          .login(email: 'cafe@escuelaing.edu.co', password: 'secreta123');
+
+      expect(await container.read(merchantControllerProvider.future), same(otherProfile));
+      verify(() => merchantApi.mine()).called(2);
+    });
   });
 
   group('perfil', () {
