@@ -2,8 +2,10 @@ import 'package:festa/app/festa_app.dart';
 import 'package:festa/core/network/api_exception.dart';
 import 'package:festa/features/auth/application/auth_providers.dart';
 import 'package:festa/features/auth/domain/account.dart';
+import 'package:festa/features/location/application/location_providers.dart';
+import 'package:festa/features/location/domain/location_consent.dart';
 import 'package:festa/features/merchant/application/merchant_providers.dart';
-import 'package:festa/features/merchant/data/merchant_api.dart';
+import 'package:festa/features/merchant/domain/merchant_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,9 +20,7 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(AccountType.user);
-    registerFallbackValue(
-      const MerchantRequest(businessName: '', category: '', address: '', latitude: 0, longitude: 0),
-    );
+    registerFallbackValue(testMerchantDraft);
   });
 
   setUp(() {
@@ -36,6 +36,12 @@ void main() {
           authApiProvider.overrideWithValue(api),
           merchantApiProvider.overrideWithValue(merchantApi),
           tokenStorageProvider.overrideWithValue(storage),
+          // La cuenta de prueba ya decidió sobre su ubicación: estas pruebas son del flujo de auth.
+          locationConsentStoreProvider.overrideWithValue(
+            InMemoryLocationConsentStore()
+              ..consents[testAccount.id] = const StoredLocationConsent(decision: LocationConsent.granted, synced: true),
+          ),
+          deviceLocationProvider.overrideWithValue(FakeDeviceLocation()),
         ],
         child: const FestaApp(),
       ),
@@ -215,8 +221,8 @@ void main() {
 
   testWidgets('el registro de comercio crea la cuenta, envía la solicitud y llega a la verificación', (tester) async {
     stubMerchantRegister();
-    when(() => merchantApi.submit(any())).thenAnswer((_) async => const MerchantStatus(verificationStatus: 'PENDING'));
-    when(() => merchantApi.myMerchant()).thenAnswer((_) async => const MerchantStatus(verificationStatus: 'PENDING'));
+    when(() => merchantApi.submit(any())).thenAnswer((_) async => testMerchantProfile(MerchantStatus.pending));
+    when(() => merchantApi.mine()).thenAnswer((_) async => testMerchantProfile(MerchantStatus.pending));
 
     await fillMerchantWizard(tester);
 
@@ -228,10 +234,10 @@ void main() {
         accountType: AccountType.merchant,
       ),
     ).called(1);
-    final request = verify(() => merchantApi.submit(captureAny())).captured.single as MerchantRequest;
-    expect(request.businessName, 'Ana');
-    expect(request.category, 'CULTURAL');
-    expect(request.address, 'Calle 205 # 59-00, Bogotá');
+    final draft = verify(() => merchantApi.submit(captureAny())).captured.single as MerchantDraft;
+    expect(draft.businessName, 'Ana');
+    expect(draft.category, MerchantCategory.cultural);
+    expect(draft.address, 'Calle 205 # 59-00, Bogotá');
     expect(find.byKey(const Key('merchant.status.title')), findsOneWidget);
     expect(find.text('Estamos revisando tu perfil'), findsOneWidget);
   });
@@ -241,9 +247,9 @@ void main() {
     var attempts = 0;
     when(() => merchantApi.submit(any())).thenAnswer((_) async {
       if (++attempts == 1) throw networkFailure;
-      return const MerchantStatus(verificationStatus: 'PENDING');
+      return testMerchantProfile(MerchantStatus.pending);
     });
-    when(() => merchantApi.myMerchant()).thenAnswer((_) async => const MerchantStatus(verificationStatus: 'PENDING'));
+    when(() => merchantApi.mine()).thenAnswer((_) async => testMerchantProfile(MerchantStatus.pending));
 
     await fillMerchantWizard(tester);
     expect(find.byKey(const Key('merchant.status.title')), findsNothing);

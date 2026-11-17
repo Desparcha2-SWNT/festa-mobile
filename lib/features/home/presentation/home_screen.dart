@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../auth/application/session_controller.dart';
-import '../../auth/domain/account.dart';
-import '../../merchant/presentation/merchant_profile_screen.dart';
+import '../../location/presentation/widgets/location_fallback_banner.dart';
 
 /// Pantalla de inicio provisional: confirma la sesión y permite cerrarla (SCRUM-51).
 /// La reemplazará el mapa de eventos.
@@ -25,14 +24,19 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: account?.role == Role.merchant
-          ? const MerchantProfileScreen()
-          : Center(
-              child: Text(
-                account == null ? '' : 'Hola, ${account.displayName}',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              account == null ? '' : 'Hola, ${account.displayName}',
+              style: Theme.of(context).textTheme.headlineSmall,
             ),
+            const SizedBox(height: 16),
+            const LocationFallbackBanner(),
+          ],
+        ),
+      ),
     );
   }
 
