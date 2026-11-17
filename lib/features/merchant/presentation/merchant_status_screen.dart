@@ -31,6 +31,8 @@ class MerchantStatusScreen extends ConsumerWidget {
         child: RefreshIndicator(
           onRefresh: controller.reload,
           child: switch (merchant) {
+            // La suspensión va primero: aplica aunque el perfil esté verificado, pendiente o rechazado.
+            AsyncData(value: MerchantProfile(suspended: true)) => _Suspended(onRetry: controller.reload),
             AsyncData(value: MerchantProfile(status: MerchantStatus.rejected, :final rejectionReason)) => _Rejected(
               reason: rejectionReason,
             ),
@@ -113,6 +115,36 @@ class _Rejected extends StatelessWidget {
         key: const Key('merchantStatus.fix'),
         onPressed: () => context.push(Routes.merchantForm),
         child: const Text('Corregir y reenviar'),
+      ),
+    );
+  }
+}
+
+/// Comercio suspendido por moderación (RF14). Mientras dure, no puede publicar y event-service oculta
+/// sus eventos del mapa; por eso no se le dice que puede publicar aunque esté verificado.
+class _Suspended extends StatelessWidget {
+  const _Suspended({required this.onRetry});
+
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return _StatusLayout(
+      icon: Icons.block,
+      iconColor: colors.error,
+      iconBackground: colors.errorContainer,
+      title: 'Tu comercio está suspendido',
+      body: const [
+        _Message(
+          'Mientras dure la suspensión no puedes publicar eventos y los que tenías no aparecen en el mapa. '
+          'Desliza hacia abajo para consultar de nuevo.',
+        ),
+      ],
+      action: OutlinedButton(
+        key: const Key('merchantStatus.retry'),
+        onPressed: onRetry,
+        child: const Text('Consultar de nuevo'),
       ),
     );
   }

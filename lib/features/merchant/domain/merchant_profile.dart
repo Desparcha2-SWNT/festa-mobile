@@ -54,7 +54,7 @@ class MerchantDraft {
 
 /// Perfil de comercio de la cuenta, tal como lo devuelve user-service (`/users/me/merchant`).
 class MerchantProfile {
-  const MerchantProfile({required this.draft, required this.status, this.rejectionReason});
+  const MerchantProfile({required this.draft, required this.status, this.rejectionReason, this.suspended = false});
 
   factory MerchantProfile.fromJson(Map<String, dynamic> json) => MerchantProfile(
     draft: MerchantDraft(
@@ -69,6 +69,7 @@ class MerchantProfile {
     ),
     status: MerchantStatus.fromApi(json['verificationStatus'] as String),
     rejectionReason: json['rejectionReason'] as String?,
+    suspended: json['suspended'] as bool? ?? false,
   );
 
   final MerchantDraft draft;
@@ -76,4 +77,11 @@ class MerchantProfile {
 
   /// Motivo que escribió el equipo Festa al rechazar; solo viene si [status] es `rejected`.
   final String? rejectionReason;
+
+  /// Suspendido por moderación. Va aparte de [status]: un comercio verificado puede estar suspendido.
+  final bool suspended;
+
+  /// Puede publicar y sus eventos salen en el mapa. user-service define la visibilidad pública
+  /// como `VERIFIED && !suspended`.
+  bool get canPublish => status == MerchantStatus.verified && !suspended;
 }

@@ -105,6 +105,40 @@ void main() {
     });
   });
 
+  group('perfil', () {
+    Map<String, dynamic> json({bool? suspended}) => {
+      'businessName': 'Café Central',
+      'category': 'GASTRONOMICO',
+      'address': 'Calle 1 # 2-3',
+      'latitude': 4.6,
+      'longitude': -74,
+      'description': '',
+      'verificationStatus': 'VERIFIED',
+      'suspended': ?suspended,
+    };
+
+    test('lee la suspensión que user-service manda aparte del estado', () {
+      final profile = MerchantProfile.fromJson(json(suspended: true));
+
+      expect(profile.status, MerchantStatus.verified);
+      expect(profile.suspended, isTrue);
+      expect(profile.canPublish, isFalse, reason: 'visibilidad pública = VERIFIED && !suspended');
+    });
+
+    test('sin el campo suspended se asume que no está suspendido', () {
+      final profile = MerchantProfile.fromJson(json());
+
+      expect(profile.suspended, isFalse);
+      expect(profile.canPublish, isTrue);
+    });
+
+    test('solo un comercio verificado puede publicar', () {
+      expect(testMerchantProfile(MerchantStatus.pending).canPublish, isFalse);
+      expect(testMerchantProfile(MerchantStatus.rejected).canPublish, isFalse);
+      expect(testMerchantProfile(MerchantStatus.verified).canPublish, isTrue);
+    });
+  });
+
   testWidgets('un comercio sin perfil llena el formulario y queda pendiente de verificación', (tester) async {
     when(() => merchantApi.mine()).thenAnswer((_) async => null);
     when(() => merchantApi.submit(any())).thenAnswer((_) async => testMerchantProfile(MerchantStatus.pending));
@@ -169,6 +203,23 @@ void main() {
     expect(find.text(testMerchantDraft.address), findsOneWidget);
     expect(find.text('Mi comercio'), findsWidgets);
     expect(find.text('Explorar'), findsNothing);
+  });
+
+  testWidgets('un comercio verificado pero suspendido no entra a publicar y ve por qué', (tester) async {
+    when(() => merchantApi.mine())
+        .thenAnswer((_) async => testMerchantProfile(MerchantStatus.verified, suspended: true));
+    await pumpApp(tester);
+
+    expect(find.text('Tu comercio está suspendido'), findsOneWidget);
+    expect(find.text('Aún no has publicado eventos.'), findsNothing);
+    expect(find.textContaining('ya puedes publicar'), findsNothing);
+
+    // Cuando se levanta la suspensión, al consultar de nuevo entra a sus eventos.
+    when(() => merchantApi.mine()).thenAnswer((_) async => testMerchantProfile(MerchantStatus.verified));
+    await tester.tap(find.byKey(const Key('merchantStatus.retry')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Aún no has publicado eventos.'), findsOneWidget);
   });
 
   testWidgets('mientras carga el perfil no confunde un comercio verificado con uno sin perfil', (tester) async {
