@@ -56,4 +56,23 @@ void main() {
   test('reporta error de red cuando no hay respuesta', () {
     expect(ApiException.fromDio(_dioError()).code, ApiException.networkError);
   });
+
+  test('lee el error plano de los servicios de Node: {"error": "...", "code": "..."}', () {
+    final e = ApiException.fromDio(
+      _dioError(
+        status: 403,
+        data: {'error': 'solo el organizador del evento puede ver sus asistentes', 'code': 'not_organizer'},
+      ),
+    );
+
+    expect(e.code, 'not_organizer');
+    expect(e.message, 'solo el organizador del evento puede ver sus asistentes');
+    expect(e.statusCode, 403);
+  });
+
+  test('sin código en el error plano, un 401 sigue siendo UNAUTHORIZED', () {
+    final e = ApiException.fromDio(_dioError(status: 401, data: {'error': 'token inválido'}));
+
+    expect(e.code, ApiException.unauthorized);
+  });
 }
