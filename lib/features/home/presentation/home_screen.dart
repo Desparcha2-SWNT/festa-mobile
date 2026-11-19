@@ -19,6 +19,12 @@ class HomeScreen extends ConsumerWidget {
         title: const Text('Festa'),
         actions: [
           IconButton(
+            key: const Key('home.plans'),
+            tooltip: 'Mis planes',
+            icon: const Icon(Icons.event_note_outlined),
+            onPressed: () => context.push(Routes.plans),
+          ),
+          IconButton(
             key: const Key('home.profile'),
             tooltip: 'Mi perfil',
             icon: const Icon(Icons.person_outline),

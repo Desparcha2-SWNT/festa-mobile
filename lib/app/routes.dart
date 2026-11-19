@@ -4,5 +4,6 @@ abstract final class Routes {
   static const register = '/register';
   static const home = '/';
   static const profile = '/profile';
+  static const plans = '/plans';
   static const merchantPending = '/merchant/pending';
 }
