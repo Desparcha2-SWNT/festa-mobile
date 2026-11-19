@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/attendees/presentation/event_attendees_screen.dart';
 import '../features/auth/application/session_controller.dart';
 import '../features/auth/domain/account.dart';
 import '../features/auth/presentation/login_screen.dart';
@@ -43,6 +44,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: Routes.register, builder: (_, _) => const RegisterScreen()),
       GoRoute(path: Routes.home, builder: (_, _) => const HomeScreen()),
       GoRoute(path: Routes.merchantPending, builder: (_, _) => const MerchantPendingScreen()),
+      GoRoute(
+        path: Routes.eventAttendees,
+        builder: (_, state) => EventAttendeesScreen(eventId: state.pathParameters['id']!),
+      ),
     ],
   );
   ref.onDispose(router.dispose);
