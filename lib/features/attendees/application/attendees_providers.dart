@@ -38,8 +38,13 @@ class AttendeesController extends AsyncNotifier<AttendeesState> {
   final String eventId;
   bool _loadingMore = false;
 
+  /// Sube con cada carga desde cero (la primera y cada refresh). Una página que se pidió antes de un
+  /// refresh trae datos viejos y se descarta al llegar.
+  int _generation = 0;
+
   @override
   Future<AttendeesState> build() async {
+    _generation++;
     final page = await ref.watch(attendeesApiProvider).list(eventId);
     return AttendeesState(
       items: page.items,
@@ -50,12 +55,24 @@ class AttendeesController extends AsyncNotifier<AttendeesState> {
   }
 
   /// Trae la siguiente página. Si falla, se conserva lo ya cargado y el error sube a la pantalla.
+  /// Si mientras tanto el usuario recargó la lista, la página que llega se descarta (y su error también):
+  /// pegarla sobre la lista nueva mezclaría datos viejos con los recién cargados.
   Future<void> loadMore() async {
     final current = state.value;
-    if (current == null || !current.hasMore || _loadingMore) return;
+    // Con un refresh en curso no se pagina: la página se calcularía sobre la lista que está por cambiar.
+    if (current == null || !current.hasMore || _loadingMore || state.isLoading) return;
+    final generation = _generation;
+    bool stale() => !ref.mounted || generation != _generation || !identical(state.value, current);
     _loadingMore = true;
     try {
-      final page = await ref.read(attendeesApiProvider).list(eventId, offset: current.items.length);
+      final AttendeePage page;
+      try {
+        page = await ref.read(attendeesApiProvider).list(eventId, offset: current.items.length);
+      } catch (_) {
+        if (stale()) return;
+        rethrow;
+      }
+      if (stale()) return;
       state = AsyncData(
         AttendeesState(
           items: [...current.items, ...page.items],
