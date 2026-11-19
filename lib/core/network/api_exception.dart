@@ -2,9 +2,10 @@ import 'package:dio/dio.dart';
 
 /// Error de la API traducido a algo que la UI puede mostrar.
 ///
-/// Los servicios responden `{"error": {"code", "message", "details"}}` con mensajes en español;
-/// event-service responde solo `{"error": "mensaje"}`. Kong (gateway) responde `{"message": "..."}`
-/// en sus 401 y 429, así que para esos casos nos guiamos por el código de estado.
+/// Los servicios responden `{"error": {"code", "message", "details"}}` con mensajes en español.
+/// Los de Node (booking, event) responden plano: `{"error": "mensaje"}`, a veces con `"code"`.
+/// Kong (gateway) responde `{"message": "..."}` en sus 401 y 429, así que para esos casos
+/// nos guiamos por el código de estado.
 class ApiException implements Exception {
   const ApiException({required this.code, required this.message, this.statusCode, this.fieldErrors = const {}});
 
@@ -30,7 +31,18 @@ class ApiException implements Exception {
 
     final plainError = _plainError(response.data);
     if (plainError != null) {
-      return ApiException(code: 'HTTP_$status', message: _asSentence(plainError), statusCode: status);
+      final code = (response.data as Map<String, dynamic>)['code'];
+      return ApiException(
+        code: code is String
+            ? code
+            : switch (status) {
+                401 => unauthorized,
+                429 => tooManyRequests,
+                _ => 'HTTP_$status',
+              },
+        message: _asSentence(plainError),
+        statusCode: status,
+      );
     }
 
     return switch (status) {

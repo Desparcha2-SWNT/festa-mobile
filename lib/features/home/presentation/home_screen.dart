@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:go_router/go_router.dart';
+
+import '../../../app/routes.dart';
 import '../../auth/application/session_controller.dart';
 import '../../location/application/location_consent_controller.dart';
 import '../../location/domain/location_consent.dart';
@@ -27,6 +30,12 @@ class HomeScreen extends ConsumerWidget {
               icon: const Icon(Icons.location_off_outlined),
               onPressed: () => _confirmRevokeLocation(context, ref),
             ),
+          IconButton(
+            key: const Key('home.profile'),
+            tooltip: 'Mi perfil',
+            icon: const Icon(Icons.person_outline),
+            onPressed: () => context.push(Routes.profile),
+          ),
           IconButton(
             key: const Key('home.logout'),
             tooltip: 'Cerrar sesión',

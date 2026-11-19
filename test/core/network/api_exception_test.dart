@@ -63,4 +63,23 @@ void main() {
     expect(e.statusCode, 403);
     expect(e.message, 'Solo quien creó el evento puede editarlo.');
   });
+
+  test('lee el error plano de los servicios de Node: {"error": "...", "code": "..."}', () {
+    final e = ApiException.fromDio(
+      _dioError(
+        status: 403,
+        data: {'error': 'solo el organizador del evento puede ver sus asistentes', 'code': 'not_organizer'},
+      ),
+    );
+
+    expect(e.code, 'not_organizer');
+    expect(e.message, 'Solo el organizador del evento puede ver sus asistentes.');
+    expect(e.statusCode, 403);
+  });
+
+  test('sin código en el error plano, un 401 sigue siendo UNAUTHORIZED', () {
+    final e = ApiException.fromDio(_dioError(status: 401, data: {'error': 'token inválido'}));
+
+    expect(e.code, ApiException.unauthorized);
+  });
 }

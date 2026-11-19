@@ -13,6 +13,7 @@ import 'package:festa/features/location/domain/location_consent.dart';
 import 'package:festa/features/location/domain/user_location.dart';
 import 'package:festa/features/merchant/data/merchant_api.dart';
 import 'package:festa/features/merchant/domain/merchant_profile.dart';
+import 'package:festa/features/profile/data/profile_api.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockAuthApi extends Mock implements AuthApi {}
@@ -22,6 +23,8 @@ class MockConsentsApi extends Mock implements ConsentsApi {}
 class MockMerchantApi extends Mock implements MerchantApi {}
 
 class MockEventsApi extends Mock implements EventsApi {}
+
+class MockProfileApi extends Mock implements ProfileApi {}
 
 class InMemoryTokenStorage implements TokenStorage {
   InMemoryTokenStorage([this.refreshToken]);

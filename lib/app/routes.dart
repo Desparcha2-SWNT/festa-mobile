@@ -4,6 +4,7 @@ abstract final class Routes {
   static const register = '/register';
   static const locationConsent = '/location-consent';
   static const home = '/';
+  static const profile = '/profile';
   static const map = '/map';
   static const eventDetailPattern = '/events/:id';
   static const myEvents = '/my-events';
