@@ -4,11 +4,14 @@ import 'package:festa/features/auth/data/token_storage.dart';
 import 'package:festa/features/auth/domain/account.dart';
 import 'package:festa/features/auth/domain/auth_session.dart';
 import 'package:festa/features/merchant/data/merchant_api.dart';
+import 'package:festa/features/profile/data/profile_api.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockAuthApi extends Mock implements AuthApi {}
 
 class MockMerchantApi extends Mock implements MerchantApi {}
+
+class MockProfileApi extends Mock implements ProfileApi {}
 
 class InMemoryTokenStorage implements TokenStorage {
   InMemoryTokenStorage([this.refreshToken]);
