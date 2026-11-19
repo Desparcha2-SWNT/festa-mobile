@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:festa/core/network/api_exception.dart';
 import 'package:festa/features/plans/application/plans_providers.dart';
 import 'package:festa/features/plans/data/plans_api.dart';
@@ -78,6 +80,47 @@ void main() {
       expect(sub.read().value!.items.map((p) => p.attendanceId), ['a', 'b']);
       expect(sub.read().value!.hasMore, isFalse);
       verify(() => api.list(PlansTab.upcoming, offset: 1)).called(1);
+    });
+
+    /// Primera carga con [a] de 3; el refresh trae [x, y] de 2. La página 2 queda en manos de la prueba.
+    Future<Completer<MyPlansPage>> loadThenStartLoadMore() async {
+      var loads = 0;
+      when(() => api.list(PlansTab.upcoming)).thenAnswer(
+        (_) async => ++loads == 1
+            ? MyPlansPage(items: [_plan('a')], total: 3, offset: 0)
+            : MyPlansPage(items: [_plan('x'), _plan('y')], total: 2, offset: 0),
+      );
+      final secondPage = Completer<MyPlansPage>();
+      when(() => api.list(PlansTab.upcoming, offset: 1)).thenAnswer((_) => secondPage.future);
+      container.listen(plansControllerProvider(PlansTab.upcoming), (_, _) {});
+      await container.read(plansControllerProvider(PlansTab.upcoming).future);
+      return secondPage;
+    }
+
+    test('una página pedida antes del refresh no pisa la lista recargada', () async {
+      final provider = plansControllerProvider(PlansTab.upcoming);
+      final secondPage = await loadThenStartLoadMore();
+      final loadingMore = container.read(provider.notifier).loadMore();
+
+      await container.refresh(provider.future);
+      secondPage.complete(MyPlansPage(items: [_plan('b')], total: 3, offset: 1)); // llega tarde, con datos viejos
+      await loadingMore;
+
+      final state = container.read(provider).value!;
+      expect(state.items.map((p) => p.attendanceId), ['x', 'y']);
+      expect(state.total, 2);
+    });
+
+    test('el error de una página vieja no sube a la pantalla', () async {
+      final provider = plansControllerProvider(PlansTab.upcoming);
+      final secondPage = await loadThenStartLoadMore();
+      final loadingMore = container.read(provider.notifier).loadMore();
+
+      await container.refresh(provider.future);
+      secondPage.completeError(const ApiException(code: ApiException.networkError, message: 'x'));
+
+      await expectLater(loadingMore, completes);
+      expect(container.read(provider).value!.items.map((p) => p.attendanceId), ['x', 'y']);
     });
   });
 
