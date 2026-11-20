@@ -56,6 +56,10 @@ class LocationConsentController extends AsyncNotifier<LocationConsent?> {
   }) async {
     try {
       await api.recordLocationConsent(granted: consent.decision == LocationConsent.granted);
+      // Si el usuario cambió la decisión mientras esta llamada estaba en vuelo, el envío viejo no
+      // vuelve a marcar como sincronizada la decisión nueva (su propio envío la sincroniza).
+      final current = await store.read(accountId);
+      if (current?.decision != consent.decision) return;
       await store.save(accountId, consent.markSynced());
     } on ApiException {
       // Queda pendiente y se reintenta la próxima vez que se abra la app.

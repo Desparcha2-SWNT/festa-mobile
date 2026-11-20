@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/http_providers.dart';
+import '../../auth/application/session_controller.dart';
 import '../../location/application/user_location_provider.dart';
 import '../data/events_api.dart';
 import '../domain/event.dart';
@@ -21,7 +22,12 @@ final nearbyEventsProvider = FutureProvider<List<Event>>((ref) async {
 }, retry: _noRetry);
 
 /// Eventos que creó el usuario («Mis eventos»). Se invalida al crear, editar o cancelar uno.
-final myEventsProvider = FutureProvider<List<Event>>((ref) => ref.watch(eventsApiProvider).mine(), retry: _noRetry);
+/// Depende de la cuenta activa: si otra cuenta entra en el mismo `ProviderScope`, no se sirve la
+/// lista cacheada de la anterior (podría tener eventos privados de otro comercio).
+final myEventsProvider = FutureProvider<List<Event>>((ref) {
+  ref.watch(sessionControllerProvider.select((session) => session.value?.id));
+  return ref.watch(eventsApiProvider).mine();
+}, retry: _noRetry);
 
 final eventDetailProvider = FutureProvider.family<Event, String>(
   (ref, id) => ref.watch(eventsApiProvider).byId(id),

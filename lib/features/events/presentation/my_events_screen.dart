@@ -166,6 +166,20 @@ class _MyEventCard extends StatelessWidget {
                   style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary),
                 ),
               ],
+              // SCRUM-141: punto de entrada a la lista de asistentes. Solo los eventos que se publicaron
+              // (vigentes o ya terminados) tienen asistentes; uno cancelado u oculto no.
+              if (event.status == EventStatus.published || event.status == EventStatus.expired) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    key: Key('myEvents.attendees.${event.id}'),
+                    onPressed: () => context.push(Routes.attendeesOf(event.id)),
+                    icon: const Icon(Icons.people_outline),
+                    label: const Text('Asistentes'),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

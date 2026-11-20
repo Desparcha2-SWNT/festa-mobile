@@ -45,6 +45,7 @@ void main() {
             InMemoryLocationConsentStore()
               ..consents[testAccount.id] = const StoredLocationConsent(decision: LocationConsent.granted, synced: true),
           ),
+          deviceLocationProvider.overrideWithValue(FakeDeviceLocation()),
         ],
         child: const FestaApp(),
       ),

@@ -4,7 +4,6 @@ abstract final class Routes {
   static const register = '/register';
   static const locationConsent = '/location-consent';
   static const home = '/';
-  static const profile = '/profile';
   static const map = '/map';
   static const eventDetailPattern = '/events/:id';
   static const myEvents = '/my-events';
@@ -13,8 +12,15 @@ abstract final class Routes {
   static const myMerchant = '/merchant';
   static const merchantForm = '/merchant/form';
   static const merchantStatus = '/merchant/status';
+  static const profile = '/profile';
+  static const plans = '/plans';
+
+  /// Lista de asistentes de un evento, para su organizador (SCRUM-141).
+  static const eventAttendees = '/events/:id/attendees';
 
   static String eventDetail(String id) => '/events/$id';
 
   static String editEvent(String id) => '/my-events/$id/edit';
+
+  static String attendeesOf(String eventId) => '/events/$eventId/attendees';
 }
