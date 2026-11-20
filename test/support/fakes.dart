@@ -23,6 +23,7 @@ class MockConsentsApi extends Mock implements ConsentsApi {}
 class MockMerchantApi extends Mock implements MerchantApi {}
 
 class MockEventsApi extends Mock implements EventsApi {}
+
 class MockProfileApi extends Mock implements ProfileApi {}
 
 class InMemoryTokenStorage implements TokenStorage {
