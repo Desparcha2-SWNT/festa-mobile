@@ -34,7 +34,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [locationConsentControllerProvider.overrideWith(() => fake)],
-        child: const MaterialApp(home: Scaffold(body: Center(child: LocationConsentButton()))),
+        child: const MaterialApp(
+          home: Scaffold(body: Center(child: LocationConsentButton())),
+        ),
       ),
     );
     await tester.pumpAndSettle();
