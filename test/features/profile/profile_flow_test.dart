@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:festa/app/festa_app.dart';
 import 'package:festa/features/auth/application/auth_providers.dart';
+import 'package:festa/features/auth/application/session_controller.dart';
 import 'package:festa/features/location/application/location_providers.dart';
 import 'package:festa/features/location/domain/location_consent.dart';
 import 'package:festa/features/profile/application/profile_providers.dart';
@@ -153,5 +156,34 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Iniciar sesión'), findsOneWidget);
+  });
+
+  testWidgets('si la sesión cambia mientras se guarda, no escribe las preferencias en la cuenta nueva', (tester) async {
+    stubProfile();
+    final interestsReply = Completer<void>();
+    when(() => profileApi.replaceInterests(any())).thenAnswer((_) => interestsReply.future);
+    when(() => profileApi.updatePreferences(any())).thenAnswer((_) async {});
+    when(() => authApi.logout(any())).thenAnswer((_) async {});
+    await openProfile(tester);
+
+    await tester.tap(find.byKey(const Key('profile.interest.deportivo')));
+    await tester.pump();
+    final save = find.byKey(const Key('profile.save'));
+    await tester.ensureVisible(save);
+    await tester.tap(save);
+    await tester.pump(); // la primera llamada queda pendiente
+
+    // La sesión cae mientras la respuesta está en camino (p. ej. un refresh rechazado).
+    await ProviderScope.containerOf(tester.element(find.byType(FestaApp)))
+        .read(sessionControllerProvider.notifier)
+        .logout();
+    await tester.pumpAndSettle();
+
+    interestsReply.complete();
+    await tester.pumpAndSettle();
+
+    // La segunda llamada habría ido con la sesión nueva: no debe salir, y nada debe escapar sin manejar.
+    verifyNever(() => profileApi.updatePreferences(any()));
+    expect(tester.takeException(), isNull);
   });
 }
