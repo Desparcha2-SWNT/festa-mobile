@@ -9,6 +9,11 @@ class AuthInterceptor extends QueuedInterceptor {
 
   static const _retriedKey = 'festa.auth_retried';
 
+  /// Marca de `Options.extra` para peticiones que no deben renovarse ni repetirse en un 401.
+  /// Se usa cuando la petición pertenece a la sesión que la originó: si la sesión cambió (por
+  /// ejemplo, otra cuenta inició sesión), repetirla con la nueva la enviaría con otra identidad.
+  static const noRetryKey = 'festa.auth_no_retry';
+
   final AuthRepository _repository;
 
   /// Cliente sin este interceptor, para repetir la petición sin volver a pasar por aquí.
@@ -24,7 +29,7 @@ class AuthInterceptor extends QueuedInterceptor {
   @override
   Future<void> onError(DioException err, ErrorInterceptorHandler handler) async {
     final request = err.requestOptions;
-    if (err.response?.statusCode != 401 || request.extra[_retriedKey] == true) {
+    if (err.response?.statusCode != 401 || request.extra[_retriedKey] == true || request.extra[noRetryKey] == true) {
       return handler.next(err);
     }
 
