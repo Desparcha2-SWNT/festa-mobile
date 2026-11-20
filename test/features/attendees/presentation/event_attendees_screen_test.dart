@@ -200,4 +200,35 @@ void main() {
     expect(find.text('Beto'), findsOneWidget);
     verify(() => api.list(_eventId, offset: 1)).called(1);
   });
+
+  testWidgets('deslizar para actualizar con la petición caída no deja el error sin manejar y ofrece reintentar', (
+    tester,
+  ) async {
+    var online = true;
+    when(() => api.list(_eventId)).thenAnswer((_) async {
+      if (!online) throw const ApiException(code: ApiException.networkError, message: 'No pudimos conectarnos.');
+      return _page([_attendee('a1', name: 'Ana')]);
+    });
+
+    await pump(tester);
+    expect(find.text('Ana'), findsOneWidget);
+
+    online = false;
+    await tester.drag(find.byKey(const Key('attendees.list')), const Offset(0, 300));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+
+    // El error del refresh no escapa del RefreshIndicator: queda en el estado y la pantalla lo muestra.
+    expect(tester.takeException(), isNull);
+    expect(find.text('No pudimos conectarnos.'), findsOneWidget);
+    expect(find.byKey(const Key('attendees.retry')), findsOneWidget);
+
+    online = true;
+    await tester.tap(find.byKey(const Key('attendees.retry')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ana'), findsOneWidget);
+    expect(find.byKey(const Key('attendees.retry')), findsNothing);
+  });
 }
