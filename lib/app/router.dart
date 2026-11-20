@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/attendees/presentation/event_attendees_screen.dart';
 import '../features/auth/application/session_controller.dart';
 import '../features/auth/domain/account.dart';
 import '../features/auth/presentation/login_screen.dart';
@@ -67,6 +68,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.eventDetailPattern,
         builder: (_, state) => EventDetailScreen(eventId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: Routes.eventAttendees,
+        builder: (_, state) => EventAttendeesScreen(eventId: state.pathParameters['id']!),
       ),
       GoRoute(path: Routes.plans, builder: (_, _) => const MyPlansScreen()),
       StatefulShellRoute.indexedStack(

@@ -15,7 +15,12 @@ abstract final class Routes {
   static const profile = '/profile';
   static const plans = '/plans';
 
+  /// Lista de asistentes de un evento, para su organizador (SCRUM-141).
+  static const eventAttendees = '/events/:id/attendees';
+
   static String eventDetail(String id) => '/events/$id';
 
   static String editEvent(String id) => '/my-events/$id/edit';
+
+  static String attendeesOf(String eventId) => '/events/$eventId/attendees';
 }
