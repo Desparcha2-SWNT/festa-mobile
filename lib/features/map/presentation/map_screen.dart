@@ -89,8 +89,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       );
     }
 
-    final nearby = ref.watch(nearbyEventsProvider);
-    final events = nearby.value ?? const <Event>[];
+    final nearby = ref.watch(exploreEventsProvider);
+    final events = nearby.value?.events ?? const <Event>[];
+    final offlineSince = nearby.value?.offlineSince;
     final selected = ref.watch(selectedEventProvider);
     final buildMapView = ref.watch(mapViewBuilderProvider);
 
@@ -117,6 +118,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   if (nearby.hasError && !nearby.isLoading) ...[
                     const SizedBox(height: 8),
                     _EventsLoadError(onRetry: () => ref.invalidate(nearbyEventsProvider)),
+                  ] else if (offlineSince != null) ...[
+                    const SizedBox(height: 8),
+                    _OfflineBanner(
+                      savedAt: offlineSince,
+                      retrying: nearby.isLoading,
+                      onRetry: () => ref.invalidate(nearbyEventsProvider),
+                    ),
                   ],
                   const Spacer(),
                   Align(
@@ -162,6 +170,56 @@ class _EventsLoadError extends StatelessWidget {
               child: Text('No pudimos cargar los eventos.', style: TextStyle(color: colors.onErrorContainer)),
             ),
             TextButton(onPressed: onRetry, child: const Text('Reintentar')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// SCRUM-140 (Figma 4c, «Explorar · Sin conexión»): sin red, el mapa muestra el último listado guardado.
+class _OfflineBanner extends StatelessWidget {
+  const _OfflineBanner({required this.savedAt, required this.retrying, required this.onRetry});
+
+  final DateTime savedAt;
+  final bool retrying;
+  final VoidCallback onRetry;
+
+  static const _months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+  /// «20 nov, 3:05 p. m.» en la hora del teléfono.
+  static String formatSavedAt(DateTime at) {
+    final local = at.toLocal();
+    final hour12 = local.hour % 12 == 0 ? 12 : local.hour % 12;
+    final minutes = local.minute.toString().padLeft(2, '0');
+    final period = local.hour < 12 ? 'a. m.' : 'p. m.';
+    return '${local.day} ${_months[local.month - 1]}, $hour12:$minutes $period';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Material(
+      key: const Key('map.offline'),
+      color: colors.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.only(left: 12),
+        child: Row(
+          children: [
+            Icon(Icons.cloud_off, size: 20, color: colors.onSurfaceVariant),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Sin conexión: estos son los eventos que cargaste el ${formatSavedAt(savedAt)}',
+                style: TextStyle(color: colors.onSurfaceVariant),
+              ),
+            ),
+            TextButton(
+              key: const Key('map.offline.retry'),
+              onPressed: retrying ? null : onRetry,
+              child: const Text('Reintentar'),
+            ),
           ],
         ),
       ),
