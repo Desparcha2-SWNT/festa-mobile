@@ -1,5 +1,7 @@
 import 'package:festa/app/festa_app.dart';
 import 'package:festa/features/auth/application/auth_providers.dart';
+import 'package:festa/features/location/application/location_providers.dart';
+import 'package:festa/features/location/domain/location_consent.dart';
 import 'package:festa/features/profile/application/profile_providers.dart';
 import 'package:festa/features/profile/domain/user_profile.dart';
 import 'package:flutter/material.dart';
@@ -38,6 +40,12 @@ void main() {
           authApiProvider.overrideWithValue(authApi),
           profileApiProvider.overrideWithValue(profileApi),
           tokenStorageProvider.overrideWithValue(storage),
+          // La cuenta de prueba ya decidió sobre su ubicación: estas pruebas son del perfil.
+          locationConsentStoreProvider.overrideWithValue(
+            InMemoryLocationConsentStore()
+              ..consents[testAccount.id] = const StoredLocationConsent(decision: LocationConsent.granted, synced: true),
+          ),
+          deviceLocationProvider.overrideWithValue(FakeDeviceLocation()),
         ],
         child: const FestaApp(),
       ),

@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../merchant/application/merchant_providers.dart';
-import '../../merchant/data/merchant_api.dart';
+import '../../merchant/domain/merchant_profile.dart';
 import '../domain/account.dart';
 import 'auth_providers.dart';
 
@@ -58,7 +58,7 @@ class SessionController extends AsyncNotifier<Account?> {
   Future<void> registerMerchant({
     required String email,
     required String password,
-    required MerchantRequest request,
+    required MerchantDraft draft,
     required bool acceptedPrivacyPolicy,
   }) async {
     _unpublishedMerchant ??= await ref
@@ -66,11 +66,11 @@ class SessionController extends AsyncNotifier<Account?> {
         .register(
           email: email,
           password: password,
-          displayName: request.businessName,
+          displayName: draft.businessName,
           accountType: AccountType.merchant,
           acceptedPrivacyPolicy: acceptedPrivacyPolicy,
         );
-    await ref.read(merchantApiProvider).submit(request);
+    await ref.read(merchantApiProvider).submit(draft);
     final account = _unpublishedMerchant!;
     _unpublishedMerchant = null;
     state = AsyncData(account);

@@ -5,7 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../app/design/design.dart';
 import '../../../app/routes.dart';
 import '../../../core/network/api_exception.dart';
-import '../../merchant/data/merchant_api.dart';
+import '../../location/domain/geo_point.dart';
+import '../../merchant/domain/merchant_profile.dart';
 import '../application/session_controller.dart';
 import '../domain/account.dart';
 import 'auth_validators.dart';
@@ -139,18 +140,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             email: _email.text.trim(),
             password: _password.text,
             acceptedPrivacyPolicy: _acceptedPrivacy, // validado localmente; no va al back
-            request: MerchantRequest(
+            draft: MerchantDraft(
               businessName: _name.text.trim(),
-              category: _categoryApiValues[_category]!,
+              category: MerchantCategory.fromApi(_categoryApiValues[_category]!),
               address: _address.text.trim(),
               // TODO: sustituir por las coordenadas del selector de mapa (Mapbox, RF5). Mientras tanto,
               // centro de Bogota, para que el backend acepte la solicitud.
-              latitude: _bogotaLatitude,
-              longitude: _bogotaLongitude,
+              location: const GeoPoint(latitude: _bogotaLatitude, longitude: _bogotaLongitude),
               description: _description.text.trim(),
             ),
           );
-      // El router lleva al comercio a su verificación cuando la sesión queda publicada.
+      // El router lleva al comercio a su verificación (pantalla de estado) cuando la sesión queda publicada.
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e);
     } finally {
