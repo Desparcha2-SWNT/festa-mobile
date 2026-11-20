@@ -23,7 +23,9 @@ class EventAttendeesScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Asistentes')),
       body: switch (attendees) {
         AsyncData(:final value) => RefreshIndicator(
-          onRefresh: () => ref.refresh(provider.future),
+          // El error del refresh ya queda en el estado del provider y se muestra con «Reintentar»;
+          // aquí solo se evita que el RefreshIndicator lo deje sin capturar.
+          onRefresh: () => ref.refresh(provider.future).then((_) {}, onError: (Object _) {}),
           child: _AttendeeList(state: value, onLoadMore: () => _loadMore(context, ref)),
         ),
         AsyncError(:final error) => _ErrorView(error: error, onRetry: () => ref.invalidate(provider)),

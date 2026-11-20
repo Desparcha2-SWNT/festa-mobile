@@ -36,11 +36,14 @@ class AttendeesController extends AsyncNotifier<AttendeesState> {
   AttendeesController(this.eventId);
 
   final String eventId;
-  bool _loadingMore = false;
 
   /// Sube con cada carga desde cero (la primera y cada refresh). Una página que se pidió antes de un
   /// refresh trae datos viejos y se descarta al llegar.
   int _generation = 0;
+
+  /// Generación en la que hay una página en vuelo. Está ligada a la generación y no a un bool: una
+  /// página vieja que termina después de un refresh no puede liberar ni bloquear la carga nueva.
+  int? _loadingGeneration;
 
   @override
   Future<AttendeesState> build() async {
@@ -60,10 +63,10 @@ class AttendeesController extends AsyncNotifier<AttendeesState> {
   Future<void> loadMore() async {
     final current = state.value;
     // Con un refresh en curso no se pagina: la página se calcularía sobre la lista que está por cambiar.
-    if (current == null || !current.hasMore || _loadingMore || state.isLoading) return;
     final generation = _generation;
+    if (current == null || !current.hasMore || _loadingGeneration == generation || state.isLoading) return;
     bool stale() => !ref.mounted || generation != _generation || !identical(state.value, current);
-    _loadingMore = true;
+    _loadingGeneration = generation;
     try {
       final AttendeePage page;
       try {
@@ -82,7 +85,7 @@ class AttendeesController extends AsyncNotifier<AttendeesState> {
         ),
       );
     } finally {
-      _loadingMore = false;
+      if (_loadingGeneration == generation) _loadingGeneration = null;
     }
   }
 }
