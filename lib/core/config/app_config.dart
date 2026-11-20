@@ -1,10 +1,15 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 /// Configuración de la app que cambia por entorno.
 ///
 /// Se define al compilar con `--dart-define`, por ejemplo:
 /// `flutter run --dart-define=API_BASE_URL=http://localhost:8000`.
 abstract final class AppConfig {
-  /// URL del gateway. Por defecto apunta al gateway local visto desde el emulador de Android.
-  static const String apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:8000');
+  /// URL del gateway. Chrome usa localhost; el emulador de Android usa el alias del host 10.0.2.2.
+  static const String apiBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: kIsWeb ? 'http://localhost:8000' : 'http://10.0.2.2:8000',
+  );
 
   /// Token público de Mapbox (`pk.…`). Nunca se sube al repo: en local va en `config/dev.json`
   /// (ver README) y en el CD sale del secreto `MAPBOX_ACCESS_TOKEN`. Vacío = mapa no configurado.

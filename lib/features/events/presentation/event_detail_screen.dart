@@ -160,6 +160,7 @@ class _Cover extends StatelessWidget {
             child: Chip(
               label: Text(event.category.label),
               backgroundColor: event.category.color,
+              // Negro sobre el color de categoría (AA); el blanco no llega a 4,5:1 en estos colores.
               labelStyle: const TextStyle(color: FestaColors.textPrimary),
               side: BorderSide.none,
               visualDensity: VisualDensity.compact,
@@ -232,7 +233,7 @@ class _Organizer extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text(
                           'Comercio verificado',
-                          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.tertiary),
+                          style: theme.textTheme.bodySmall?.copyWith(color: FestaColors.textSuccess),
                         ),
                       ],
                     ),

@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 /// Error de la API traducido a algo que la UI puede mostrar.
 ///
 /// Los servicios responden `{"error": {"code", "message", "details"}}` con mensajes en español.
-/// Los de Node (booking, event) responden plano: `{"error": "mensaje", "code": "..."}`.
+/// Los de Node (booking, event) responden plano: `{"error": "mensaje"}`, a veces con `"code"`.
 /// Kong (gateway) responde `{"message": "..."}` en sus 401 y 429, así que para esos casos
 /// nos guiamos por el código de estado.
 class ApiException implements Exception {
@@ -29,17 +29,18 @@ class ApiException implements Exception {
       );
     }
 
-    final data = response.data;
-    if (data is Map<String, dynamic> && data['error'] is String) {
+    final plainError = _plainError(response.data);
+    if (plainError != null) {
+      final code = (response.data as Map<String, dynamic>)['code'];
       return ApiException(
-        code:
-            data['code'] as String? ??
-            switch (status) {
-              401 => unauthorized,
-              429 => tooManyRequests,
-              _ => unknownError,
-            },
-        message: data['error'] as String,
+        code: code is String
+            ? code
+            : switch (status) {
+                401 => unauthorized,
+                429 => tooManyRequests,
+                _ => 'HTTP_$status',
+              },
+        message: _asSentence(plainError),
         statusCode: status,
       );
     }
@@ -75,6 +76,19 @@ class ApiException implements Exception {
       return data['error'] as Map<String, dynamic>;
     }
     return null;
+  }
+
+  static String? _plainError(Object? data) {
+    if (data is Map<String, dynamic> && data['error'] is String && (data['error'] as String).isNotEmpty) {
+      return data['error'] as String;
+    }
+    return null;
+  }
+
+  /// `evento no encontrado` → `Evento no encontrado.`
+  static String _asSentence(String text) {
+    final capitalized = text[0].toUpperCase() + text.substring(1);
+    return capitalized.endsWith('.') ? capitalized : '$capitalized.';
   }
 
   static Map<String, String> _fieldErrors(Object? details) {

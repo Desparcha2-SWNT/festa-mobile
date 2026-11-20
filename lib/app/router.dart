@@ -134,6 +134,6 @@ String? _merchantGate(String location, AsyncValue<MerchantProfile?> merchant) {
   final profile = merchant.value;
   if (profile == null) return Routes.merchantForm;
   if (location == Routes.merchantForm) return location;
-  if (profile.status == MerchantStatus.verified) return null;
+  if (profile.canPublish) return null;
   return Routes.merchantStatus;
 }

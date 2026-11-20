@@ -136,8 +136,8 @@ const testMerchantDraft = MerchantDraft(
   description: 'Encuentro semestral del programa.',
 );
 
-MerchantProfile testMerchantProfile(MerchantStatus status, {String? rejectionReason}) =>
-    MerchantProfile(draft: testMerchantDraft, status: status, rejectionReason: rejectionReason);
+MerchantProfile testMerchantProfile(MerchantStatus status, {String? rejectionReason, bool suspended = false}) =>
+    MerchantProfile(draft: testMerchantDraft, status: status, rejectionReason: rejectionReason, suspended: suspended);
 
 const merchantSession = AuthSession(
   accessToken: 'access-m',

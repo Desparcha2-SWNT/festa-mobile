@@ -1,6 +1,6 @@
 # festa-mobile
 
-App de Festa para iOS y Android (Flutter): la de los usuarios y el panel simple para comercios (RF15).
+App de Festa para iOS y Android (Flutter): la de los usuarios y el panel simple para comercios (RF3, RF15).
 
 ## Correr
 
@@ -23,6 +23,20 @@ flutter run --dart-define-from-file=config/dev.json --dart-define=API_BASE_URL=h
 (Tokens → público, solo con los scopes por defecto); en el CD sale del secreto `MAPBOX_ACCESS_TOKEN`.
 
 `API_BASE_URL` es la URL del gateway. En producción debe ser `https://`: el tráfico HTTP sin cifrar solo está permitido en los builds de debug de Android.
+
+## Perfil de comercio (RF3)
+
+Al iniciar sesión con una cuenta de comercio, la app pide el perfil del negocio (nombre, categoría,
+dirección, ubicación en el mapa y descripción) y lo envía a `/api/users/me/merchant`. Mientras el
+equipo Festa no lo verifica, el comercio ve su estado:
+
+- `PENDING`: perfil en revisión; puede editarlo.
+- `REJECTED`: muestra el motivo y permite corregir y reenviar.
+- `VERIFIED`: entra a «Mis eventos» y puede publicar.
+- `suspended: true`: aunque esté verificado, no puede publicar ni sus eventos salen en el mapa
+  (user-service define la visibilidad pública como `VERIFIED && !suspended`).
+
+En las vistas de estado se puede deslizar hacia abajo para consultar el resultado más reciente.
 
 ## Calidad
 
@@ -81,9 +95,9 @@ lib/
 - Clústeres (SCRUM-77): la fuente agrupa los eventos que quedan a menos de 50 px entre sí hasta el zoom 14. El círculo
   magenta muestra cuántos eventos agrupa, y al tocarlo el mapa se acerca justo hasta donde se separan. El mapa abre en
   zoom 13 (barrio, con clústeres) y al elegir un evento se acerca a 15, para que no quede dentro de un clúster.
-- **Pendiente de SCRUM-74:** `EventsApi.nearby` usa el contrato propuesto
-  `GET /api/events/nearby?lat=&lng=&radiusKm=` → `{"items": [Evento]}`. Hasta que event-service lo publique, el mapa
-  muestra el aviso «No pudimos cargar los eventos».
+- **Búsqueda cercana (SCRUM-74):** `EventsApi.nearby` usa `GET /api/events?lat=&lng=&radiusKm=` → `{"items": [resumen]}`,
+  la búsqueda de event-service ya fusionada en `develop` (`src/events/search.js`, PR #9). Si el servicio no responde, el
+  mapa muestra el aviso «No pudimos cargar los eventos».
 
 ## Comercio (RF3)
 

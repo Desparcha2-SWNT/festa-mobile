@@ -19,8 +19,13 @@ final merchantControllerProvider = AsyncNotifierProvider<MerchantController, Mer
 class MerchantController extends AsyncNotifier<MerchantProfile?> {
   @override
   Future<MerchantProfile?> build() async {
-    final role = ref.watch(sessionControllerProvider.select((session) => session.value?.role));
-    if (role != Role.merchant) return null;
+    // Depende de la cuenta (id y rol), no solo del rol: si un comercio cierra sesión y entra otro,
+    // el perfil se vuelve a pedir y nunca se muestra el del anterior. Riverpod descarta la respuesta
+    // de una consulta vieja que llegue después del cambio de cuenta.
+    final account = ref.watch(
+      sessionControllerProvider.select((session) => (id: session.value?.id, role: session.value?.role)),
+    );
+    if (account.id == null || account.role != Role.merchant) return null;
     return ref.watch(merchantApiProvider).mine();
   }
 
@@ -28,7 +33,11 @@ class MerchantController extends AsyncNotifier<MerchantProfile?> {
   /// la pantalla muestra el mensaje.
   Future<void> save(MerchantDraft draft) async {
     final api = ref.read(merchantApiProvider);
+    final accountId = ref.read(sessionControllerProvider).value?.id;
     final profile = state.value == null ? await api.submit(draft) : await api.update(draft);
+    // La respuesta es de la cuenta que envió el perfil: si la sesión cambió mientras tanto (o el
+    // controlador se descartó), mostrarla pisaría el perfil de la cuenta nueva.
+    if (!ref.mounted || ref.read(sessionControllerProvider).value?.id != accountId) return;
     state = AsyncData(profile);
   }
 

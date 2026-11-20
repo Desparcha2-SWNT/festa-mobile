@@ -57,6 +57,13 @@ void main() {
     expect(ApiException.fromDio(_dioError()).code, ApiException.networkError);
   });
 
+  test('entiende el error en texto plano de event-service', () {
+    final e = ApiException.fromDio(_dioError(status: 403, data: {'error': 'solo quien creó el evento puede editarlo'}));
+
+    expect(e.statusCode, 403);
+    expect(e.message, 'Solo quien creó el evento puede editarlo.');
+  });
+
   test('lee el error plano de los servicios de Node: {"error": "...", "code": "..."}', () {
     final e = ApiException.fromDio(
       _dioError(
@@ -66,7 +73,7 @@ void main() {
     );
 
     expect(e.code, 'not_organizer');
-    expect(e.message, 'solo el organizador del evento puede ver sus asistentes');
+    expect(e.message, 'Solo el organizador del evento puede ver sus asistentes.');
     expect(e.statusCode, 403);
   });
 
