@@ -61,6 +61,10 @@ class _PlansTabView extends ConsumerWidget {
       await ref.read(plansControllerProvider(tab).notifier).loadMore();
     } on ApiException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      // Una página que no se puede leer (p. ej. un JSON inesperado) no es una ApiException: sin este
+      // caso el error escapaba sin que la persona viera nada. La lista ya cargada se conserva.
+      messenger.showSnackBar(const SnackBar(content: Text('No pudimos cargar más planes. Intenta de nuevo.')));
     }
   }
 }
