@@ -33,7 +33,11 @@ class MerchantController extends AsyncNotifier<MerchantProfile?> {
   /// la pantalla muestra el mensaje.
   Future<void> save(MerchantDraft draft) async {
     final api = ref.read(merchantApiProvider);
+    final accountId = ref.read(sessionControllerProvider).value?.id;
     final profile = state.value == null ? await api.submit(draft) : await api.update(draft);
+    // La respuesta es de la cuenta que envió el perfil: si la sesión cambió mientras tanto (o el
+    // controlador se descartó), mostrarla pisaría el perfil de la cuenta nueva.
+    if (!ref.mounted || ref.read(sessionControllerProvider).value?.id != accountId) return;
     state = AsyncData(profile);
   }
 
