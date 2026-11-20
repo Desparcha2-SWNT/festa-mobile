@@ -19,6 +19,7 @@ import '../features/merchant/domain/merchant_profile.dart';
 import '../features/merchant/presentation/merchant_form_screen.dart';
 import '../features/merchant/presentation/merchant_status_screen.dart';
 import '../features/merchant/presentation/my_merchant_screen.dart';
+import '../features/profile/presentation/profile_screen.dart';
 import '../features/splash/presentation/splash_screen.dart';
 import 'app_shell.dart';
 import 'routes.dart';
@@ -55,6 +56,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: Routes.locationConsent, builder: (_, _) => const LocationConsentScreen()),
       GoRoute(path: Routes.merchantForm, builder: (_, _) => const MerchantFormScreen()),
       GoRoute(path: Routes.merchantStatus, builder: (_, _) => const MerchantStatusScreen()),
+      GoRoute(path: Routes.profile, builder: (_, _) => const ProfileScreen()),
       GoRoute(path: Routes.createEvent, builder: (_, _) => const CreateEventScreen()),
       GoRoute(
         path: Routes.editEventPattern,

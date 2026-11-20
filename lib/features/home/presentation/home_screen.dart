@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:go_router/go_router.dart';
+
+import '../../../app/routes.dart';
 import '../../auth/application/session_controller.dart';
 import '../../location/presentation/widgets/location_consent_button.dart';
 import '../../location/presentation/widgets/location_fallback_banner.dart';
@@ -19,6 +22,12 @@ class HomeScreen extends ConsumerWidget {
         actions: [
           // Activar o desactivar la ubicación (Ley 1581): lo que promete la pantalla de consentimiento.
           const LocationConsentButton(),
+          IconButton(
+            key: const Key('home.profile'),
+            tooltip: 'Mi perfil',
+            icon: const Icon(Icons.person_outline),
+            onPressed: () => context.push(Routes.profile),
+          ),
           IconButton(
             key: const Key('home.logout'),
             tooltip: 'Cerrar sesión',

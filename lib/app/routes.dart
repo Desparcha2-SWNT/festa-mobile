@@ -12,6 +12,7 @@ abstract final class Routes {
   static const myMerchant = '/merchant';
   static const merchantForm = '/merchant/form';
   static const merchantStatus = '/merchant/status';
+  static const profile = '/profile';
 
   static String eventDetail(String id) => '/events/$id';
 

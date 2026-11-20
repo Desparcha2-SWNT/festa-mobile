@@ -5,3 +5,4 @@ import '../data/merchant_api.dart';
 
 /// Cliente de los endpoints de comercio de user-service. Exige JWT: usa el cliente autenticado.
 final merchantApiProvider = Provider<MerchantApi>((ref) => MerchantApi(ref.watch(authenticatedDioProvider)));
+
