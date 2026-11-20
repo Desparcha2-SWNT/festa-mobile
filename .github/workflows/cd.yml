@@ -118,15 +118,21 @@ jobs:
             echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
           fi
 
+      # MAPBOX_ACCESS_TOKEN es el token público (pk.…) de Mapbox, guardado como secreto del repositorio
+      # (Settings → Secrets → Actions) para no dejarlo en el código. Sin él, el mapa avisa que no está configurado.
       - name: Compilar APK de release
         env:
           API_URL: ${{ steps.api.outputs.url }}
+          MAPBOX_TOKEN: ${{ secrets.MAPBOX_ACCESS_TOKEN }}
           # Las contraseñas solo se inyectan en publicaciones desde main; en PRs y ejecuciones manuales
           # sobre otras ramas el build sale con la llave de debug y no ve ningún secreto de firma.
           ANDROID_KEYSTORE_PASSWORD: ${{ steps.publicar.outputs.si == 'true' && secrets.ANDROID_KEYSTORE_PASSWORD || '' }}
           ANDROID_KEY_ALIAS: ${{ steps.publicar.outputs.si == 'true' && secrets.ANDROID_KEY_ALIAS || '' }}
           ANDROID_KEY_PASSWORD: ${{ steps.publicar.outputs.si == 'true' && secrets.ANDROID_KEY_PASSWORD || '' }}
-        run: flutter build apk --release ${API_URL:+--dart-define=API_BASE_URL=$API_URL}
+        run: |
+          flutter build apk --release \
+            ${API_URL:+--dart-define=API_BASE_URL=$API_URL} \
+            ${MAPBOX_TOKEN:+--dart-define=MAPBOX_ACCESS_TOKEN=$MAPBOX_TOKEN}
 
       - name: Preparar el artefacto
         id: artefacto
