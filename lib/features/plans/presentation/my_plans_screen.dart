@@ -40,7 +40,7 @@ class _PlansTabView extends ConsumerWidget {
     final provider = plansControllerProvider(tab);
     return switch (ref.watch(provider)) {
       AsyncData(:final value) => RefreshIndicator(
-        onRefresh: () => ref.refresh(provider.future),
+        onRefresh: () => _refresh(ref),
         child: value.items.isEmpty
             ? ListView(physics: const AlwaysScrollableScrollPhysics(), children: [_EmptyView(tab)])
             : _PlanList(tab: tab, state: value, onLoadMore: () => _loadMore(context, ref)),
@@ -49,6 +49,11 @@ class _PlansTabView extends ConsumerWidget {
       _ => const Center(child: CircularProgressIndicator()),
     };
   }
+
+  /// El error del refresh ya queda en el estado del provider (la pantalla muestra el error con
+  /// «Reintentar»); aquí solo se evita que el `RefreshIndicator` lo deje sin capturar.
+  Future<void> _refresh(WidgetRef ref) =>
+      ref.refresh(plansControllerProvider(tab).future).then((_) {}, onError: (Object _) {});
 
   Future<void> _loadMore(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
