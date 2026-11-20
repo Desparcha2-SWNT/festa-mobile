@@ -138,4 +138,35 @@ void main() {
 
     expect(find.text('Noche de jazz'), findsOneWidget);
   });
+
+  testWidgets('deslizar para recargar con la petición caída no deja el error sin manejar y ofrece reintentar', (
+    tester,
+  ) async {
+    var online = true;
+    when(() => api.list(PlansTab.upcoming)).thenAnswer((_) async {
+      if (!online) throw const ApiException(code: ApiException.networkError, message: 'No pudimos conectarnos.');
+      return _page([_plan('a1', title: 'Noche de jazz')]);
+    });
+
+    await pump(tester);
+    expect(find.text('Noche de jazz'), findsOneWidget);
+
+    online = false;
+    await tester.drag(find.text('Noche de jazz'), const Offset(0, 400));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+
+    // El error del refresh no escapa del RefreshIndicator: queda en el estado y la pantalla lo muestra.
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const Key('plans.error.upcoming')), findsOneWidget);
+    expect(find.text('No pudimos conectarnos.'), findsOneWidget);
+
+    online = true;
+    await tester.tap(find.byKey(const Key('plans.retry.upcoming')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Noche de jazz'), findsOneWidget);
+    expect(find.byKey(const Key('plans.error.upcoming')), findsNothing);
+  });
 }
