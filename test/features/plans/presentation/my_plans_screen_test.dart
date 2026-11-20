@@ -101,6 +101,25 @@ void main() {
     expect(find.byKey(const Key('plans.loadMore.upcoming')), findsNothing);
   });
 
+  testWidgets('"Ver más" con una página ilegible avisa y conserva la lista, sin dejar el error sin manejar', (
+    tester,
+  ) async {
+    when(() => api.list(PlansTab.upcoming)).thenAnswer((_) async => _page([_plan('a1', title: 'Uno')], total: 2));
+    // Un JSON inesperado no es una ApiException: antes escapaba sin que la persona viera nada.
+    when(() => api.list(PlansTab.upcoming, offset: 1))
+        .thenAnswer((_) async => throw const FormatException('JSON inesperado'));
+
+    await pump(tester);
+    await tester.tap(find.byKey(const Key('plans.loadMore.upcoming')));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('No pudimos cargar más planes. Intenta de nuevo.'), findsOneWidget);
+    expect(find.text('Uno'), findsOneWidget);
+    // El botón sigue ahí para reintentar.
+    expect(find.byKey(const Key('plans.loadMore.upcoming')), findsOneWidget);
+  });
+
   testWidgets('sin red reintenta solo dos veces y luego ofrece reintentar a mano', (tester) async {
     var online = false;
     when(() => api.list(PlansTab.upcoming)).thenAnswer((_) async {
