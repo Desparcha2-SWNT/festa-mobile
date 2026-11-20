@@ -29,11 +29,35 @@ android {
         versionName = flutter.versionName
     }
 
+    // Llave propia de release: solo si las cuatro variables tienen valor. Si falta cualquiera (clon local,
+    // PR o CI sin secretos), se firma con la llave de debug para que `flutter run --release` funcione.
+    // La publicación en main falla antes de llegar aquí si faltan credenciales (ver cd.yml).
+    val releaseKeystoreVars = listOf(
+        "ANDROID_KEYSTORE_PATH",
+        "ANDROID_KEYSTORE_PASSWORD",
+        "ANDROID_KEY_ALIAS",
+        "ANDROID_KEY_PASSWORD",
+    )
+    val releaseSigningConfigured = releaseKeystoreVars.all { !System.getenv(it).isNullOrBlank() }
+
+    signingConfigs {
+        create("release") {
+            if (releaseSigningConfigured) {
+                storeFile = file(System.getenv("ANDROID_KEYSTORE_PATH"))
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (releaseSigningConfigured) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }
