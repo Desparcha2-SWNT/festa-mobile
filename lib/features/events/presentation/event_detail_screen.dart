@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/design/design.dart';
 import '../../../app/routes.dart';
 import '../../../core/network/api_exception.dart';
+import '../../attendance/presentation/attendance_bar.dart';
 import '../application/events_providers.dart';
 import '../domain/event.dart';
 import 'event_category_color.dart';
@@ -12,7 +13,7 @@ import 'event_formatters.dart';
 
 /// SCRUM-75: detalle de un evento. Diseño: Figma «9 · Detalle del evento».
 ///
-/// El botón «Confirmo que voy» y el conteo de cupos ocupados llegan con la asistencia (SCRUM-70).
+/// Abajo, «Confirmo que voy» y los cupos ocupados (SCRUM-70) para los eventos gratis.
 class EventDetailScreen extends ConsumerWidget {
   const EventDetailScreen({super.key, required this.eventId});
 
@@ -100,10 +101,17 @@ class _EventDetail extends ConsumerWidget {
             top: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-              child: OutlinedButton(
-                key: const Key('eventDetail.showOnMap'),
-                onPressed: () => _showOnMap(context, ref),
-                child: const Text('Ver en el mapa'),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (AttendanceBar.appliesTo(event)) ...[AttendanceBar(event: event), const SizedBox(height: 8)],
+                  OutlinedButton(
+                    key: const Key('eventDetail.showOnMap'),
+                    onPressed: () => _showOnMap(context, ref),
+                    child: const Text('Ver en el mapa'),
+                  ),
+                ],
               ),
             ),
           ),
