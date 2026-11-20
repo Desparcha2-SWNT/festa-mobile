@@ -40,6 +40,10 @@ class EventAttendeesScreen extends ConsumerWidget {
       await ref.read(attendeesControllerProvider(eventId).notifier).loadMore();
     } on ApiException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      // Una página que no se puede leer (p. ej. un JSON inesperado) no es una ApiException: sin este
+      // caso el error escapaba sin que la persona viera nada. La lista ya cargada se conserva.
+      messenger.showSnackBar(const SnackBar(content: Text('No pudimos cargar más asistentes. Intenta de nuevo.')));
     }
   }
 }
@@ -48,7 +52,7 @@ class _AttendeeList extends StatelessWidget {
   const _AttendeeList({required this.state, required this.onLoadMore});
 
   final AttendeesState state;
-  final VoidCallback onLoadMore;
+  final Future<void> Function() onLoadMore;
 
   @override
   Widget build(BuildContext context) {
@@ -68,13 +72,50 @@ class _AttendeeList extends StatelessWidget {
         if (i < state.items.length) return _AttendeeTile(attendee: state.items[i]);
         return Padding(
           padding: const EdgeInsets.all(FestaSpace.md),
-          child: OutlinedButton(
-            key: const Key('attendees.loadMore'),
-            onPressed: onLoadMore,
-            child: Text('Ver más (${state.total - state.items.length})'),
-          ),
+          child: _LoadMoreButton(remaining: state.total - state.items.length, onLoadMore: onLoadMore),
         );
       },
+    );
+  }
+}
+
+/// «Ver más» con feedback: mientras la página pedida está en camino muestra un indicador y no se puede
+/// volver a pulsar.
+class _LoadMoreButton extends StatefulWidget {
+  const _LoadMoreButton({required this.remaining, required this.onLoadMore});
+
+  final int remaining;
+  final Future<void> Function() onLoadMore;
+
+  @override
+  State<_LoadMoreButton> createState() => _LoadMoreButtonState();
+}
+
+class _LoadMoreButtonState extends State<_LoadMoreButton> {
+  bool _loading = false;
+
+  Future<void> _press() async {
+    setState(() => _loading = true);
+    try {
+      await widget.onLoadMore();
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      key: const Key('attendees.loadMore'),
+      onPressed: _loading ? null : _press,
+      child: _loading
+          ? const SizedBox(
+              key: Key('attendees.loadingMore'),
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Text('Ver más (${widget.remaining})'),
     );
   }
 }

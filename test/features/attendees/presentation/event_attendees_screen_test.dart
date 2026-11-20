@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:festa/core/network/api_exception.dart';
 import 'package:festa/features/attendees/application/attendees_providers.dart';
 import 'package:festa/features/attendees/data/attendees_api.dart';
@@ -137,5 +139,65 @@ void main() {
 
     expect(find.byKey(const Key('attendees.empty')), findsOneWidget);
     expect(find.text('0 de 80 cupos'), findsOneWidget);
+  });
+
+  testWidgets('"Ver más" con una página ilegible avisa y conserva la lista, sin dejar el error sin manejar', (
+    tester,
+  ) async {
+    when(() => api.list(_eventId)).thenAnswer((_) async => _page([_attendee('a1', name: 'Ana')], total: 2));
+    // Un JSON inesperado no es una ApiException: antes escapaba sin que la persona viera nada.
+    when(() => api.list(_eventId, offset: 1)).thenAnswer((_) async => throw const FormatException('JSON inesperado'));
+
+    await pump(tester);
+    await tester.tap(find.byKey(const Key('attendees.loadMore')));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('No pudimos cargar más asistentes. Intenta de nuevo.'), findsOneWidget);
+    expect(find.text('Ana'), findsOneWidget);
+    // El botón sigue ahí para reintentar.
+    expect(find.byKey(const Key('attendees.loadMore')), findsOneWidget);
+  });
+
+  testWidgets('al deslizar para actualizar, la lista sigue visible mientras recarga', (tester) async {
+    final reload = Completer<AttendeePage>();
+    var calls = 0;
+    when(() => api.list(_eventId)).thenAnswer((_) {
+      calls++;
+      return calls == 1 ? Future.value(_page([_attendee('a1', name: 'Ana')])) : reload.future;
+    });
+
+    await pump(tester);
+    expect(find.text('Ana'), findsOneWidget);
+
+    await tester.drag(find.byKey(const Key('attendees.list')), const Offset(0, 300));
+    await tester.pump(); // arranca la animación del indicador
+    await tester.pump(const Duration(seconds: 1)); // el indicador dispara la recarga
+    expect(calls, 2);
+    // Mientras la recarga está pendiente no se reemplaza la lista por un spinner a pantalla completa.
+    expect(find.text('Ana'), findsOneWidget);
+
+    reload.complete(_page([_attendee('a1', name: 'Ana'), _attendee('a2', name: 'Beto')]));
+    await tester.pumpAndSettle();
+    expect(find.text('Beto'), findsOneWidget);
+  });
+
+  testWidgets('"Ver más" muestra un indicador mientras llega la página y no se puede pulsar dos veces', (tester) async {
+    final next = Completer<AttendeePage>();
+    when(() => api.list(_eventId)).thenAnswer((_) async => _page([_attendee('a1', name: 'Ana')], total: 2));
+    when(() => api.list(_eventId, offset: 1)).thenAnswer((_) => next.future);
+
+    await pump(tester);
+    await tester.tap(find.byKey(const Key('attendees.loadMore')));
+    await tester.pump();
+
+    expect(find.byKey(const Key('attendees.loadingMore')), findsOneWidget);
+    expect(tester.widget<OutlinedButton>(find.byKey(const Key('attendees.loadMore'))).onPressed, isNull);
+
+    next.complete(_page([_attendee('a2', name: 'Beto')], total: 2, offset: 1));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Beto'), findsOneWidget);
+    verify(() => api.list(_eventId, offset: 1)).called(1);
   });
 }
