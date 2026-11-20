@@ -47,7 +47,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       _error = null;
     });
     try {
-      await saveProfile(ref, interests: _interests!, preferences: _preferences!);
+      final saved = await saveProfile(ref, interests: _interests!, preferences: _preferences!);
+      if (!saved || !mounted) return;
       _saved = UserProfile(interests: {..._interests!}, preferences: _preferences!);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cambios guardados.')));
