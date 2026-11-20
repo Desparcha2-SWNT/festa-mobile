@@ -66,8 +66,28 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       if (event != null) _camera.flyTo(event.location, closeUp: true);
     });
 
-    final location = ref.watch(userLocationProvider).value;
-    if (location == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    final locationState = ref.watch(userLocationProvider);
+    final location = locationState.value;
+    if (location == null) {
+      if (!locationState.hasError) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      // Sin ubicación ni error mostrable, el mapa quedaría cargando para siempre: se ofrece reintentar.
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('No pudimos obtener tu ubicación.'),
+              const SizedBox(height: 16),
+              FilledButton(
+                key: const Key('map.location.retry'),
+                onPressed: () => ref.invalidate(userLocationProvider),
+                child: const Text('Reintentar'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     final nearby = ref.watch(nearbyEventsProvider);
     final events = nearby.value ?? const <Event>[];
