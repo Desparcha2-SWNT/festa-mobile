@@ -23,6 +23,12 @@ class HomeScreen extends ConsumerWidget {
           // Activar o desactivar la ubicación (Ley 1581): lo que promete la pantalla de consentimiento.
           const LocationConsentButton(),
           IconButton(
+            key: const Key('home.plans'),
+            tooltip: 'Mis planes',
+            icon: const Icon(Icons.event_note_outlined),
+            onPressed: () => context.push(Routes.plans),
+          ),
+          IconButton(
             key: const Key('home.profile'),
             tooltip: 'Mi perfil',
             icon: const Icon(Icons.person_outline),

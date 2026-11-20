@@ -37,24 +37,44 @@ class PlansController extends AsyncNotifier<PlansState> {
   PlansController(this.tab);
 
   final PlansTab tab;
-  bool _loadingMore = false;
+
+  /// Sube con cada carga desde cero (la primera y cada refresh). Una página que se pidió antes de un
+  /// refresh trae datos viejos y se descarta al llegar.
+  int _generation = 0;
+
+  /// Generación en la que hay una página en vuelo. Está ligada a la generación y no a un bool: una
+  /// página vieja que termina después de un refresh no puede liberar ni bloquear la carga nueva.
+  int? _loadingGeneration;
 
   @override
   Future<PlansState> build() async {
+    _generation++;
     final page = await ref.watch(plansApiProvider).list(tab);
     return PlansState(items: page.items, total: page.total);
   }
 
   /// Trae la siguiente página. Si falla, se conserva lo ya cargado y el error sube a la pantalla.
+  /// Si mientras tanto el usuario recargó la lista, la página que llega se descarta (y su error también):
+  /// pegarla sobre la lista nueva mezclaría datos viejos con los recién cargados.
   Future<void> loadMore() async {
     final current = state.value;
-    if (current == null || !current.hasMore || _loadingMore) return;
-    _loadingMore = true;
+    // Con un refresh en curso no se pagina: la página se calcularía sobre la lista que está por cambiar.
+    final generation = _generation;
+    if (current == null || !current.hasMore || _loadingGeneration == generation || state.isLoading) return;
+    bool stale() => !ref.mounted || generation != _generation || !identical(state.value, current);
+    _loadingGeneration = generation;
     try {
-      final page = await ref.read(plansApiProvider).list(tab, offset: current.items.length);
+      final MyPlansPage page;
+      try {
+        page = await ref.read(plansApiProvider).list(tab, offset: current.items.length);
+      } catch (_) {
+        if (stale()) return;
+        rethrow;
+      }
+      if (stale()) return;
       state = AsyncData(PlansState(items: [...current.items, ...page.items], total: page.total));
     } finally {
-      _loadingMore = false;
+      if (_loadingGeneration == generation) _loadingGeneration = null;
     }
   }
 }
