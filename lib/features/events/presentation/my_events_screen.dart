@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/design/design.dart';
 import '../../../app/routes.dart';
 import '../../../core/network/api_exception.dart';
+import '../../location/presentation/widgets/location_consent_button.dart';
 import '../application/events_providers.dart';
 import '../domain/event.dart';
 import 'event_formatters.dart';
@@ -36,7 +37,13 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-              child: Text('Mis eventos', style: theme.textTheme.headlineMedium),
+              child: Row(
+                children: [
+                  Expanded(child: Text('Mis eventos', style: theme.textTheme.headlineMedium)),
+                  // Los comercios también pueden cambiar su decisión de ubicación (Ley 1581).
+                  const LocationConsentButton(),
+                ],
+              ),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
