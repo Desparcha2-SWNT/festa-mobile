@@ -1,6 +1,7 @@
 import 'package:festa/app/routes.dart';
 import 'package:festa/core/network/api_exception.dart';
 import 'package:festa/features/events/application/events_providers.dart';
+import 'package:festa/features/events/data/explore_cache.dart';
 import 'package:festa/features/events/domain/event.dart';
 import 'package:festa/features/events/presentation/event_category_color.dart';
 import 'package:festa/features/events/presentation/event_detail_screen.dart';
@@ -30,6 +31,7 @@ void main() {
     WidgetTester tester, {
     List<UserLocation> locations = const [UserLocation.device(testDevicePoint)],
     Future<List<Event>> Function()? nearby,
+    ExploreCache? cache,
   }) async {
     var requests = 0;
     final router = GoRouter(
@@ -48,6 +50,7 @@ void main() {
         overrides: [
           userLocationProvider.overrideWith((ref) async => locations[requests++ % locations.length]),
           nearbyEventsProvider.overrideWith((ref) => (nearby ?? () async => <Event>[])()),
+          exploreCacheProvider.overrideWithValue(cache ?? InMemoryExploreCache()),
           eventDetailProvider.overrideWith((ref, id) async => testEvent(id: id)),
           mapViewBuilderProvider.overrideWithValue((config) {
             builtWith.add(config);
@@ -140,6 +143,60 @@ void main() {
 
       expect(find.text('No pudimos cargar los eventos.'), findsNothing);
       expect(map().markers, hasLength(1));
+    });
+  });
+
+  group('sin conexión (SCRUM-140)', () {
+    testWidgets('sin red muestra los últimos eventos guardados y lo avisa; al volver la red, recarga', (tester) async {
+      var online = false;
+      final cache = InMemoryExploreCache(
+        CachedEvents(
+          events: [testEvent(id: 'guardado')],
+          savedAt: DateTime(2026, 11, 20, 15, 5),
+        ),
+      );
+      await pumpMap(
+        tester,
+        cache: cache,
+        nearby: () async {
+          if (!online) throw const ApiException(code: ApiException.networkError, message: 'Sin red');
+          return [testEvent(id: 'nuevo')];
+        },
+      );
+
+      expect(find.byKey(const Key('map.offline')), findsOneWidget);
+      expect(find.text('Sin conexión: estos son los eventos que cargaste el 20 nov, 3:05 p. m.'), findsOneWidget);
+      expect(map().markers.map((m) => m.id), ['guardado']);
+      expect(find.text('No pudimos cargar los eventos.'), findsNothing);
+
+      online = true;
+      await tester.tap(find.byKey(const Key('map.offline.retry')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('map.offline')), findsNothing);
+      expect(map().markers.map((m) => m.id), ['nuevo']);
+      expect(cache.cached!.events.single.id, 'nuevo');
+    });
+
+    testWidgets('sin red y sin nada guardado muestra el error de siempre', (tester) async {
+      await pumpMap(
+        tester,
+        nearby: () async => throw const ApiException(code: ApiException.networkError, message: 'Sin red'),
+      );
+
+      expect(find.text('No pudimos cargar los eventos.'), findsOneWidget);
+      expect(find.byKey(const Key('map.offline')), findsNothing);
+    });
+
+    testWidgets('un error del servidor no se disfraza de «sin conexión»', (tester) async {
+      await pumpMap(
+        tester,
+        cache: InMemoryExploreCache(CachedEvents(events: [testEvent()], savedAt: DateTime(2026, 11, 20))),
+        nearby: () async => throw const ApiException(code: ApiException.unknownError, message: 'x', statusCode: 503),
+      );
+
+      expect(find.text('No pudimos cargar los eventos.'), findsOneWidget);
+      expect(find.byKey(const Key('map.offline')), findsNothing);
     });
   });
 }

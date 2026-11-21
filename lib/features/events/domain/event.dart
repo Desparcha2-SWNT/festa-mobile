@@ -96,6 +96,22 @@ class Event {
     );
   }
 
+  /// Lo mismo que lee [Event.fromSearchJson], para guardar el listado del mapa en el teléfono (SCRUM-140).
+  Map<String, dynamic> toSearchJson() => {
+    'eventId': id,
+    'title': title,
+    'category': category.name,
+    'startsAt': startsAt.toUtc().toIso8601String(),
+    'endsAt': endsAt.toUtc().toIso8601String(),
+    'venueName': venueName,
+    'location': {'lat': location.latitude, 'lng': location.longitude},
+    'organizerName': organizerName,
+    'ticketed': ticketed,
+    'priceCents': priceCents,
+    'capacity': capacity,
+    'coverImageUrl': coverImageUrl,
+  };
+
   final String id;
   final String title;
   final String description;

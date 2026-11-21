@@ -4,6 +4,7 @@ import 'package:festa/features/auth/data/token_storage.dart';
 import 'package:festa/features/auth/domain/account.dart';
 import 'package:festa/features/auth/domain/auth_session.dart';
 import 'package:festa/features/events/data/events_api.dart';
+import 'package:festa/features/events/data/explore_cache.dart';
 import 'package:festa/features/events/domain/event.dart';
 import 'package:festa/features/location/data/consents_api.dart';
 import 'package:festa/features/location/data/device_location.dart';
@@ -144,3 +145,17 @@ const merchantSession = AuthSession(
   refreshToken: 'refresh-m',
   account: Account(id: 'm1', email: 'ana@escuelaing.edu.co', displayName: 'Ana', role: Role.merchant),
 );
+
+/// Caché del mapa en memoria (SCRUM-140).
+class InMemoryExploreCache implements ExploreCache {
+  InMemoryExploreCache([this.cached]);
+
+  CachedEvents? cached;
+
+  @override
+  Future<CachedEvents?> read() async => cached;
+
+  @override
+  Future<void> save(List<Event> events, DateTime savedAt) async =>
+      cached = CachedEvents(events: events, savedAt: savedAt);
+}
