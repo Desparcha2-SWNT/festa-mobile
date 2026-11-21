@@ -60,6 +60,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: Routes.merchantForm, builder: (_, _) => const MerchantFormScreen()),
       GoRoute(path: Routes.merchantStatus, builder: (_, _) => const MerchantStatusScreen()),
       GoRoute(path: Routes.profile, builder: (_, _) => const ProfileScreen()),
+      GoRoute(path: Routes.passes, builder: (_, _) => const MyPassesScreen()),
       GoRoute(path: Routes.createEvent, builder: (_, _) => const CreateEventScreen()),
       GoRoute(
         path: Routes.editEventPattern,
@@ -75,7 +76,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) => EventAttendeesScreen(eventId: state.pathParameters['id']!),
       ),
       GoRoute(path: Routes.plans, builder: (_, _) => const MyPlansScreen()),
-      GoRoute(path: Routes.passes, builder: (_, _) => const MyPassesScreen()),
       StatefulShellRoute.indexedStack(
         builder: (_, _, navigationShell) => AppShell(navigationShell: navigationShell),
         branches: [
