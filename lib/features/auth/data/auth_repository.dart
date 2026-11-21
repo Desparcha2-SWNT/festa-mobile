@@ -21,6 +21,10 @@ class AuthRepository {
 
   String? get accessToken => _session?.accessToken;
 
+  /// Cuenta de la sesión vigente. Una petición se anota con ella al salir para saber, si llega un 401, si la
+  /// sesión sigue siendo la misma (ver `AuthInterceptor`).
+  String? get accountId => _session?.account.id;
+
   /// Emite cuando la sesión deja de ser válida sin que el usuario cerrara sesión
   /// (refresh vencido, revocado o reusado).
   Stream<void> get sessionExpired => _sessionExpired.stream;

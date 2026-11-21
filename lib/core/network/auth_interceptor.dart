@@ -8,6 +8,7 @@ class AuthInterceptor extends QueuedInterceptor {
   AuthInterceptor({required this._repository, required this._retryClient});
 
   static const _retriedKey = 'festa.auth_retried';
+  static const _accountKey = 'festa.auth_account';
 
   /// Marca de `Options.extra` para peticiones que no deben renovarse ni repetirse en un 401.
   /// Se usa cuando la petición pertenece a la sesión que la originó: si la sesión cambió (por
@@ -23,6 +24,8 @@ class AuthInterceptor extends QueuedInterceptor {
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     final token = _repository.accessToken;
     if (token != null) options.headers['Authorization'] = 'Bearer $token';
+    // Cuenta que origina la petición: si al llegar un 401 la sesión ya es de otra cuenta, no se repite (ver onError).
+    options.extra[_accountKey] ??= _repository.accountId;
     handler.next(options);
   }
 
@@ -36,6 +39,11 @@ class AuthInterceptor extends QueuedInterceptor {
     try {
       final session = await _repository.refresh();
       if (session == null) return handler.next(err);
+
+      // Una confirmación o cancelación salió con la cuenta A; si la sesión cambió a B mientras tanto, repetirla con el
+      // token de B actuaría sobre la cuenta equivocada. Solo se repite con la misma cuenta que la originó.
+      final origin = request.extra[_accountKey];
+      if (origin != null && origin != session.account.id) return handler.next(err);
 
       request
         ..extra[_retriedKey] = true
