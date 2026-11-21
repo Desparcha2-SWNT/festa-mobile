@@ -4,6 +4,7 @@ import 'package:festa/features/auth/data/token_storage.dart';
 import 'package:festa/features/auth/domain/account.dart';
 import 'package:festa/features/auth/domain/auth_session.dart';
 import 'package:festa/features/events/data/events_api.dart';
+import 'package:festa/features/events/data/explore_cache.dart';
 import 'package:festa/features/events/domain/event.dart';
 import 'package:festa/features/location/data/consents_api.dart';
 import 'package:festa/features/location/data/device_location.dart';
@@ -14,7 +15,6 @@ import 'package:festa/features/location/domain/user_location.dart';
 import 'package:festa/features/merchant/data/merchant_api.dart';
 import 'package:festa/features/merchant/domain/merchant_profile.dart';
 import 'package:festa/features/profile/data/profile_api.dart';
-import 'package:festa/features/events/data/explore_cache.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockAuthApi extends Mock implements AuthApi {}
