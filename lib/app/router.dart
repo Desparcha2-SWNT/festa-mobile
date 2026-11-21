@@ -20,6 +20,7 @@ import '../features/merchant/domain/merchant_profile.dart';
 import '../features/merchant/presentation/merchant_form_screen.dart';
 import '../features/merchant/presentation/merchant_status_screen.dart';
 import '../features/merchant/presentation/my_merchant_screen.dart';
+import '../features/passes/presentation/my_passes_screen.dart';
 import '../features/plans/presentation/my_plans_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
 import '../features/splash/presentation/splash_screen.dart';
@@ -74,6 +75,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) => EventAttendeesScreen(eventId: state.pathParameters['id']!),
       ),
       GoRoute(path: Routes.plans, builder: (_, _) => const MyPlansScreen()),
+      GoRoute(path: Routes.passes, builder: (_, _) => const MyPassesScreen()),
       StatefulShellRoute.indexedStack(
         builder: (_, _, navigationShell) => AppShell(navigationShell: navigationShell),
         branches: [
