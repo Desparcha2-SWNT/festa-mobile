@@ -4,6 +4,7 @@ import '../../../core/network/api_exception.dart';
 import '../../location/domain/geo_point.dart';
 import '../domain/event.dart';
 import '../domain/event_draft.dart';
+import '../domain/event_filters.dart';
 
 /// Endpoints de event-service, expuestos por el gateway bajo `/api/events`.
 class EventsApi {
@@ -13,11 +14,21 @@ class EventsApi {
 
   /// Eventos activos y próximos alrededor de [center] (SCRUM-74), con la búsqueda del mapa de
   /// event-service: `GET /api/events?lat=&lng=&radiusKm=` → `{"items": [resumen, ...]}`.
-  Future<List<Event>> nearby(GeoPoint center, {required double radiusKm}) async {
+  Future<List<Event>> nearby(
+    GeoPoint center, {
+    required double radiusKm,
+    EventFilters filters = const EventFilters(),
+    DateTime? now,
+  }) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '/api/events',
-        queryParameters: {'lat': center.latitude, 'lng': center.longitude, 'radiusKm': radiusKm},
+        queryParameters: {
+          'lat': center.latitude,
+          'lng': center.longitude,
+          'radiusKm': radiusKm,
+          ...filters.toQuery(now ?? DateTime.now()),
+        },
       );
       final items = response.data!['items'] as List<dynamic>;
       return [for (final item in items) Event.fromSearchJson(item as Map<String, dynamic>)];

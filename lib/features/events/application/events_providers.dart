@@ -7,11 +7,22 @@ import '../../location/application/user_location_provider.dart';
 import '../data/events_api.dart';
 import '../data/explore_cache.dart';
 import '../domain/event.dart';
+import '../domain/event_filters.dart';
 
 final eventsApiProvider = Provider<EventsApi>((ref) => EventsApi(ref.watch(authenticatedDioProvider)));
 
-/// Radio de búsqueda del mapa. Valor inicial a la espera de los filtros de distancia (SCRUM-79).
-const nearbyRadiusKm = 3.0;
+/// Filtros del mapa (categoría, fecha y distancia). Viven en memoria mientras la app está abierta.
+final eventFiltersProvider = NotifierProvider<EventFiltersController, EventFilters>(EventFiltersController.new);
+
+class EventFiltersController extends Notifier<EventFilters> {
+  @override
+  EventFilters build() => const EventFilters();
+
+  /// Aplica los filtros y vuelve a pedir los eventos cercanos.
+  void apply(EventFilters filters) => state = filters;
+
+  void clear() => state = const EventFilters();
+}
 
 // Los errores se muestran con un botón para reintentar; sin reintentos automáticos que dejen la
 // pantalla cargando mientras tanto.
@@ -20,7 +31,8 @@ Duration? _noRetry(int _, Object _) => null;
 /// Eventos cercanos a la ubicación del usuario (o a la Escuela si no hay ubicación).
 final nearbyEventsProvider = FutureProvider<List<Event>>((ref) async {
   final location = await ref.watch(userLocationProvider.future);
-  return ref.watch(eventsApiProvider).nearby(location.point, radiusKm: nearbyRadiusKm);
+  final filters = ref.watch(eventFiltersProvider);
+  return ref.watch(eventsApiProvider).nearby(location.point, radiusKm: filters.radiusKm, filters: filters);
 }, retry: _noRetry);
 
 final exploreCacheProvider = Provider<ExploreCache>((ref) => SharedPreferencesExploreCache());
