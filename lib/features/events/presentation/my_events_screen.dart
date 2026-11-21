@@ -172,11 +172,24 @@ class _MyEventCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    key: Key('myEvents.attendees.${event.id}'),
-                    onPressed: () => context.push(Routes.attendeesOf(event.id)),
-                    icon: const Icon(Icons.people_outline),
-                    label: const Text('Asistentes'),
+                  child: Wrap(
+                    spacing: 8,
+                    children: [
+                      // SCRUM-92: validar las entradas en la puerta; solo mientras el evento sigue publicado.
+                      if (event.status == EventStatus.published)
+                        TextButton.icon(
+                          key: Key('myEvents.checkIn.${event.id}'),
+                          onPressed: () => context.push(Routes.checkInOf(event.id)),
+                          icon: const Icon(Icons.qr_code_scanner),
+                          label: const Text('Escanear'),
+                        ),
+                      TextButton.icon(
+                        key: Key('myEvents.attendees.${event.id}'),
+                        onPressed: () => context.push(Routes.attendeesOf(event.id)),
+                        icon: const Icon(Icons.people_outline),
+                        label: const Text('Asistentes'),
+                      ),
+                    ],
                   ),
                 ),
               ],

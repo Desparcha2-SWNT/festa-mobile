@@ -7,6 +7,7 @@ import '../features/auth/application/session_controller.dart';
 import '../features/auth/domain/account.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
+import '../features/checkin/presentation/check_in_screen.dart';
 import '../features/events/presentation/create_event_screen.dart';
 import '../features/events/presentation/edit_event_screen.dart';
 import '../features/events/presentation/event_detail_screen.dart';
@@ -72,6 +73,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.eventAttendees,
         builder: (_, state) => EventAttendeesScreen(eventId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: Routes.eventCheckIn,
+        builder: (_, state) => CheckInScreen(eventId: state.pathParameters['id']!),
       ),
       GoRoute(path: Routes.plans, builder: (_, _) => const MyPlansScreen()),
       StatefulShellRoute.indexedStack(
