@@ -6,6 +6,7 @@ import '../../../app/design/design.dart';
 import '../../../app/routes.dart';
 import '../../../core/network/api_exception.dart';
 import '../../attendance/presentation/attendance_bar.dart';
+import '../../orders/presentation/ticket_bar.dart';
 import '../application/events_providers.dart';
 import '../domain/event.dart';
 import 'event_category_color.dart';
@@ -106,6 +107,7 @@ class _EventDetail extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (AttendanceBar.appliesTo(event)) ...[AttendanceBar(event: event), const SizedBox(height: 8)],
+                  if (TicketBar.appliesTo(event)) ...[TicketBar(event: event), const SizedBox(height: 8)],
                   OutlinedButton(
                     key: const Key('eventDetail.showOnMap'),
                     onPressed: () => _showOnMap(context, ref),
