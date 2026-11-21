@@ -29,15 +29,38 @@ class _TicketBarState extends ConsumerState<TicketBar> {
   int _quantity = 1;
   bool _sending = false;
 
+  /// Clave de idempotencia del intento en curso. Se genera una vez y se reutiliza en los reintentos (por ejemplo,
+  /// si la red se corta después de que payment-service creó la orden), así el reintento no crea una segunda orden.
+  /// Se renueva cuando la orden se crea, cuando el servidor rechaza el intento o cuando cambia la cantidad.
+  String? _attemptKey;
+  int? _attemptQuantity;
+
+  String _keyFor(int quantity) {
+    if (_attemptKey == null || _attemptQuantity != quantity) {
+      _attemptKey = '${widget.event.id}-${DateTime.now().microsecondsSinceEpoch}';
+      _attemptQuantity = quantity;
+    }
+    return _attemptKey!;
+  }
+
+  void _resetAttempt() {
+    _attemptKey = null;
+    _attemptQuantity = null;
+  }
+
+  /// Límite por orden: el que fija el organizador en el evento, o el máximo de la app si no lo informa.
+  int get _limit => widget.event.maxTicketsPerOrder ?? TicketBar.maxPerOrder;
+
   Future<void> _buy() async {
     final messenger = ScaffoldMessenger.of(context);
     final api = ref.read(ordersApiProvider);
     final openCheckout = ref.read(checkoutLauncherProvider);
-    // La clave combina el evento y el instante: un doble toque no crea dos órdenes (Idempotency-Key).
-    final key = '${widget.event.id}-${DateTime.now().microsecondsSinceEpoch}';
+    final key = _keyFor(_quantity);
     setState(() => _sending = true);
     try {
       final checkout = await api.createOrder(eventId: widget.event.id, quantity: _quantity, idempotencyKey: key);
+      // La orden ya existe: el próximo toque es un intento nuevo.
+      _resetAttempt();
       final url = checkout.checkoutUrl;
       if (url == null) {
         messenger.showSnackBar(const SnackBar(content: Text('Esta orden ya no está pendiente de pago.')));
@@ -55,6 +78,9 @@ class _TicketBarState extends ConsumerState<TicketBar> {
       );
       ref.invalidate(myOrdersProvider);
     } on ApiException catch (e) {
+      // Con respuesta del servidor (p. ej. cupo agotado) la orden no se creó: el próximo intento necesita una clave nueva.
+      // Sin respuesta (red caída) se conserva la clave para reintentar sin duplicar la orden.
+      if (e.statusCode != null) _resetAttempt();
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -81,7 +107,7 @@ class _TicketBarState extends ConsumerState<TicketBar> {
               key: const Key('ticket.plus'),
               tooltip: 'Agregar una boleta',
               icon: const Icon(Icons.add),
-              onPressed: _sending || _quantity >= TicketBar.maxPerOrder ? null : () => setState(() => _quantity++),
+              onPressed: _sending || _quantity >= _limit ? null : () => setState(() => _quantity++),
             ),
             const SizedBox(width: FestaSpace.xs),
             Expanded(
