@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:festa/core/network/auth_interceptor.dart';
 import 'package:festa/features/auth/data/auth_repository.dart';
+import 'package:festa/features/auth/domain/auth_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -148,6 +149,60 @@ void main() {
 
     expect(retries.calls, 1);
   });
+
+  test(
+    'con el repositorio real: si la sesión cambia mientras el refresh está en vuelo, no se repite la mutación',
+    () async {
+      final api = MockAuthApi();
+      final realRepository = AuthRepository(api: api, storage: InMemoryTokenStorage());
+      addTearDown(realRepository.dispose);
+      final refreshStarted = Completer<void>();
+      final pendingRefresh = Completer<AuthSession>();
+      when(
+        () => api.login(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer((invocation) async {
+        return invocation.namedArguments[#email] == 'a@escuelaing.edu.co'
+            ? testSession('a')
+            : testSession('b', testMerchantAccount);
+      });
+      when(() => api.refresh(any())).thenAnswer((_) {
+        refreshStarted.complete();
+        return pendingRefresh.future;
+      });
+      when(() => api.logout(any())).thenAnswer((_) async {});
+      await realRepository.login(email: 'a@escuelaing.edu.co', password: 'secreta123');
+
+      final deferred = _DeferredUnauthorizedAdapter();
+      final retries = _CountingAdapter();
+      final client = Dio(BaseOptions(baseUrl: 'http://festa.test'))
+        ..httpClientAdapter = deferred
+        ..interceptors.add(
+          AuthInterceptor(
+            repository: realRepository,
+            retryClient: Dio(BaseOptions(baseUrl: 'http://festa.test'))..httpClientAdapter = retries,
+          ),
+        );
+
+      final failure = expectLater(
+        client.post<void>('/api/bookings/events/e1/attendance'),
+        throwsA(isA<DioException>()),
+      );
+      await deferred.started.future; // la confirmación salió con la cuenta A
+      deferred.released.complete(); // llega el 401 y empieza la renovación de A
+      await refreshStarted.future;
+
+      await realRepository.logout(); // A cierra sesión y entra B mientras la renovación sigue en vuelo
+      await realRepository.login(email: 'b@escuelaing.edu.co', password: 'secreta123');
+      pendingRefresh.complete(testSession('a')); // la renovación de A termina tarde
+      await failure;
+
+      expect(retries.calls, 0); // la confirmación de A no se reenvía
+      expect(realRepository.accountId, testMerchantAccount.id); // y la sesión sigue siendo la de B
+    },
+  );
 
   test('un 401 con la marca de no repetir no renueva ni repite con otra sesión', () async {
     await expectLater(
