@@ -37,6 +37,10 @@ class ExploreEvents {
 
 /// SCRUM-140: con red, los eventos cercanos y se guardan en el teléfono; sin red, el último listado
 /// guardado. Otros errores (o sin red y sin nada guardado) llegan a la pantalla como antes.
+///
+/// Límite: funciona con la app ya abierta y con sesión. En un arranque en frío sin red, la sesión no se puede
+/// restaurar (renovar el token exige red) y el router lleva al login antes de construir el mapa, así que la
+/// caché no se lee. Ofrecerla ahí exigiría un acceso de solo lectura sin sesión, una decisión de producto aparte.
 final exploreEventsProvider = FutureProvider<ExploreEvents>((ref) async {
   final cache = ref.watch(exploreCacheProvider);
   try {

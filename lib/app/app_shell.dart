@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/auth/application/session_controller.dart';
 import '../features/auth/domain/account.dart';
+import '../features/events/application/events_providers.dart';
 
 /// Ramas de la barra inferior, en el orden en que se declaran en el router.
 abstract final class ShellBranch {
@@ -52,6 +53,11 @@ class AppShell extends ConsumerWidget {
         selectedIndex: selected < 0 ? 0 : selected,
         onDestinationSelected: (index) {
           final branch = tabs[index].branch;
+          // El mapa se conserva montado al cambiar de pestaña (indexedStack) y no vuelve a pedir nada solo: sin esto,
+          // quien pierde la conexión y regresa al mapa seguiría viendo el resultado anterior sin aviso (SCRUM-140).
+          if (branch == ShellBranch.map && navigationShell.currentIndex != ShellBranch.map) {
+            ref.invalidate(nearbyEventsProvider);
+          }
           navigationShell.goBranch(branch, initialLocation: branch == navigationShell.currentIndex);
         },
         destinations: [
