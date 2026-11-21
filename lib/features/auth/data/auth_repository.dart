@@ -19,7 +19,15 @@ class AuthRepository {
   AuthSession? _session;
   Future<AuthSession?>? _refreshInFlight;
 
+  /// Cambia con cada inicio o cierre de sesión (no con una renovación). Una renovación solo se aplica si la sesión
+  /// con la que empezó sigue siendo la vigente: si no, restauraría los tokens de una cuenta que ya salió.
+  int _epoch = 0;
+
   String? get accessToken => _session?.accessToken;
+
+  /// Cuenta de la sesión vigente. Una petición se anota con ella al salir para saber, si llega un 401, si la
+  /// sesión sigue siendo la misma (ver `AuthInterceptor`).
+  String? get accountId => _session?.account.id;
 
   /// Emite cuando la sesión deja de ser válida sin que el usuario cerrara sesión
   /// (refresh vencido, revocado o reusado).
@@ -30,6 +38,7 @@ class AuthRepository {
     required String password,
     required String displayName,
     required AccountType accountType,
+    // acceptedPrivacyPolicy: se valida en la UI (Ley 1581) pero no se envía al backend.
     required bool acceptedPrivacyPolicy,
   }) async {
     final session = await _api.register(
@@ -37,7 +46,6 @@ class AuthRepository {
       password: password,
       displayName: displayName,
       accountType: accountType,
-      acceptedPrivacyPolicy: acceptedPrivacyPolicy,
     );
     return _start(session);
   }
@@ -56,7 +64,15 @@ class AuthRepository {
 
   /// Renueva los tokens. Las llamadas concurrentes comparten la misma petición: el refresh
   /// rota en cada uso y si se usara dos veces el servidor revocaría toda la sesión.
-  Future<AuthSession?> refresh() => _refreshInFlight ??= _doRefresh().whenComplete(() => _refreshInFlight = null);
+  Future<AuthSession?> refresh() {
+    final inFlight = _refreshInFlight;
+    if (inFlight != null) return inFlight;
+    late final Future<AuthSession?> renewal;
+    renewal = _doRefresh().whenComplete(() {
+      if (identical(_refreshInFlight, renewal)) _refreshInFlight = null;
+    });
+    return _refreshInFlight = renewal;
+  }
 
   /// Cierra la sesión en el servidor (mejor esfuerzo) y siempre la borra del dispositivo.
   Future<void> logout() async {
@@ -73,13 +89,18 @@ class AuthRepository {
   Future<void> dispose() => _sessionExpired.close();
 
   Future<AuthSession?> _doRefresh() async {
+    final epoch = _epoch;
     final refreshToken = _session?.refreshToken ?? await _storage.readRefreshToken();
     if (refreshToken == null) return null;
     try {
       final session = await _api.refresh(refreshToken);
-      await _start(session);
+      // Otra cuenta (o ninguna) tomó la sesión mientras se renovaba: este resultado ya no es de nadie y aplicarlo
+      // sustituiría los tokens vigentes por los de la cuenta anterior.
+      if (_epoch != epoch) return null;
+      await _start(session, renewal: true);
       return session;
     } on ApiException catch (e) {
+      if (_epoch != epoch) return null; // el fallo es de la sesión anterior: no cierra la nueva
       // Un error de red no invalida la sesión: el token sigue guardado para el próximo intento.
       if (e.code == ApiException.networkError) rethrow;
       await _clear();
@@ -88,13 +109,19 @@ class AuthRepository {
     }
   }
 
-  Future<Account> _start(AuthSession session) async {
+  Future<Account> _start(AuthSession session, {bool renewal = false}) async {
+    if (!renewal) {
+      _epoch++; // inicio de sesión: invalida lo que una renovación anterior en vuelo pudiera aplicar
+      _refreshInFlight = null;
+    }
     _session = session;
     await _storage.saveRefreshToken(session.refreshToken);
     return session.account;
   }
 
   Future<void> _clear() async {
+    _epoch++;
+    _refreshInFlight = null;
     _session = null;
     await _storage.clear();
   }
