@@ -15,6 +15,9 @@ abstract final class Routes {
   static const profile = '/profile';
   static const plans = '/plans';
 
+  /// «Mis resultados» del comercio (RF15).
+  static const merchantDashboard = '/merchant/dashboard';
+
   /// Lista de asistentes de un evento, para su organizador (SCRUM-141).
   static const eventAttendees = '/events/:id/attendees';
 
