@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:festa/app/festa_app.dart';
+import 'package:festa/core/config/app_version.dart';
 import 'package:festa/features/auth/application/auth_providers.dart';
 import 'package:festa/features/auth/application/session_controller.dart';
 import 'package:festa/features/location/application/location_providers.dart';
@@ -9,6 +10,7 @@ import 'package:festa/features/profile/application/profile_providers.dart';
 import 'package:festa/features/profile/domain/user_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -32,7 +34,7 @@ void main() {
   });
 
   /// Abre la app con sesión iniciada y entra a «Mi perfil» desde el inicio.
-  Future<void> openProfile(WidgetTester tester) async {
+  Future<void> openProfile(WidgetTester tester, {List<Override> extraOverrides = const []}) async {
     // Pantalla alta: la lista construye sus elementos de forma perezosa y los de abajo no existirían.
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1;
@@ -49,6 +51,7 @@ void main() {
               ..consents[testAccount.id] = const StoredLocationConsent(decision: LocationConsent.granted, synced: true),
           ),
           deviceLocationProvider.overrideWithValue(FakeDeviceLocation()),
+          ...extraOverrides,
         ],
         child: const FestaApp(),
       ),
@@ -84,6 +87,32 @@ void main() {
     expect(isSelected(tester, 'profile.interest.deportivo'), isFalse);
     expect(isSelected(tester, 'profile.budget.medium'), isTrue);
     expect(tester.widget<FilledButton>(find.byKey(const Key('profile.save'))).onPressed, isNull);
+  });
+
+  testWidgets('muestra la versión de la app al final del perfil', (tester) async {
+    stubProfile();
+    await openProfile(
+      tester,
+      extraOverrides: [
+        appVersionProvider.overrideWith(
+          (ref) async =>
+              const AppVersion(version: '0.1.0', buildNumber: '1', buildRun: '9', commit: '0123456789abcdef'),
+        ),
+      ],
+    );
+    final version = find.byKey(const Key('profile.version'));
+    await tester.ensureVisible(version);
+    expect(tester.widget<Text>(version).data, 'Versión 0.1.0+1 · compilación 9 · 0123456');
+  });
+
+  testWidgets('si no se puede leer la versión, el perfil sigue funcionando sin mostrarla', (tester) async {
+    stubProfile();
+    await openProfile(
+      tester,
+      extraOverrides: [appVersionProvider.overrideWith((ref) async => throw Exception('sin plugin'))],
+    );
+    expect(find.byKey(const Key('profile.version')), findsNothing);
+    expect(find.byKey(const Key('profile.save')), findsOneWidget);
   });
 
   testWidgets('guarda intereses y preferencias editados', (tester) async {
