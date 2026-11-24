@@ -15,6 +15,11 @@ abstract final class AppConfig {
   /// (ver README) y en el CD sale del secreto `MAPBOX_ACCESS_TOKEN`. Vacío = mapa no configurado.
   static const String mapboxAccessToken = String.fromEnvironment('MAPBOX_ACCESS_TOKEN');
 
+  /// Datos del build que el CD graba en el APK de release para poder rastrearlo hasta su release.
+  /// Vacíos en builds locales.
+  static const String commit = String.fromEnvironment('APP_COMMIT');
+  static const String buildRun = String.fromEnvironment('APP_BUILD');
+
   static const Duration connectTimeout = Duration(seconds: 10);
   static const Duration receiveTimeout = Duration(seconds: 20);
 }
