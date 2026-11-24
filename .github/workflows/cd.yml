@@ -140,6 +140,9 @@ jobs:
           version=$(sed -n 's/^version: //p' pubspec.yaml)
           nombre="festa-mobile-v${version}.apk"
           cp build/app/outputs/flutter-apk/app-release.apk "$nombre"
+          # Copia con nombre fijo: permite un enlace que no cambia entre versiones
+          # (releases/latest/download/festa-mobile.apk) para QR impresos y documentación.
+          cp build/app/outputs/flutter-apk/app-release.apk festa-mobile.apk
           {
             echo "nombre=$nombre"
             echo "tag=mobile-v${version}-${{ github.run_number }}"
@@ -175,6 +178,9 @@ jobs:
             desconocidos" en el celular:
 
             ![QR de instalación](https://github.com/${{ github.repository }}/releases/download/${{ steps.artefacto.outputs.tag }}/qr.png)
+
+            Enlace fijo a la última versión: https://github.com/${{ github.repository }}/releases/latest/download/festa-mobile.apk
           files: |
             ${{ steps.artefacto.outputs.nombre }}
+            festa-mobile.apk
             qr.png
