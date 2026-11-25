@@ -16,7 +16,7 @@ import 'event_formatters.dart';
 import 'widgets/event_form.dart';
 
 /// SCRUM-63: un comercio verificado crea un evento (RF4). Diseño: Figma «5 · Crear evento · Datos»
-/// y «7 · Vista previa». El paso de descripción con IA (Figma «6») llega con SCRUM-101.
+/// y «7 · Vista previa». La descripción se puede redactar con IA (Figma «6», SCRUM-101 y SCRUM-103).
 class CreateEventScreen extends ConsumerStatefulWidget {
   const CreateEventScreen({super.key});
 
@@ -97,6 +97,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
             : EventForm(
                 initial: draft ?? _defaults(merchant),
                 submitLabel: 'Continuar',
+                merchantId: accountId,
                 header: const _StepLabel('Paso 1 de 2 · Datos del evento'),
                 onSubmit: (value) => setState(() {
                   _draft = value;
