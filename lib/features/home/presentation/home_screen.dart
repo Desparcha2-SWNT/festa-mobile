@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:go_router/go_router.dart';
 
+import '../../../app/design/design.dart';
 import '../../../app/routes.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/account.dart';
 import '../../location/presentation/widgets/location_consent_button.dart';
 import '../../location/presentation/widgets/location_fallback_banner.dart';
 import '../../team/presentation/merchant_review_screen.dart';
+import '../../team/presentation/report_queue_screen.dart';
 
 /// Pantalla de inicio provisional: confirma la sesión y permite cerrarla (SCRUM-51).
 /// La reemplazará el mapa de eventos.
@@ -75,6 +77,15 @@ class HomeScreen extends ConsumerWidget {
                     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const MerchantReviewScreen())),
                 icon: const Icon(Icons.verified_user_outlined),
                 label: const Text('Revisión de comercios'),
+              ),
+              const SizedBox(height: FestaSpace.xs),
+              // SCRUM-110: la cola de reportes (RF14) que el equipo revisa a mano.
+              FilledButton.tonalIcon(
+                key: const Key('home.reports'),
+                onPressed: () =>
+                    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const ReportQueueScreen())),
+                icon: const Icon(Icons.flag_outlined),
+                label: const Text('Reportes'),
               ),
             ],
           ],
