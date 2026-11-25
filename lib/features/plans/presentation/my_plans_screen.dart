@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/design/design.dart';
 import '../../../core/network/api_exception.dart';
+import '../../passes/presentation/my_passes_screen.dart';
 import '../application/plans_providers.dart';
 import '../domain/my_plan.dart';
 import 'plan_formatters.dart';
@@ -133,6 +134,24 @@ class _PlanCard extends StatelessWidget {
                   if (plan.venueName != null && plan.venueName!.trim().isNotEmpty)
                     Text(plan.venueName!, style: secondary, maxLines: 1, overflow: TextOverflow.ellipsis),
                   if (cancelled) ...[const SizedBox(height: FestaSpace.xs), const _CancelledBadge()],
+                  // Figma 21: chip del tipo de plan y «Ver mi QR» mientras el evento no ha terminado.
+                  if (!cancelled && plan.endsAt.isAfter(DateTime.now())) ...[
+                    const SizedBox(height: FestaSpace.xs),
+                    Wrap(
+                      spacing: FestaSpace.xs,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        const _ConfirmedBadge(),
+                        TextButton.icon(
+                          key: Key('plans.qr.${plan.attendanceId}'),
+                          onPressed: () => Navigator.of(context)
+                              .push(MaterialPageRoute<void>(builder: (_) => PassForEventScreen(eventId: plan.eventId))),
+                          icon: const Icon(Icons.qr_code_2),
+                          label: const Text('Ver mi QR'),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -167,6 +186,20 @@ class _Cover extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ConfirmedBadge extends StatelessWidget {
+  const _ConfirmedBadge();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: FestaSpace.xs, vertical: FestaSpace.xxs),
+    decoration: BoxDecoration(color: FestaColors.bgFree, borderRadius: FestaRadius.smAll),
+    child: Text(
+      'Asistencia confirmada',
+      style: Theme.of(context).textTheme.labelMedium?.copyWith(color: FestaColors.textSuccess),
+    ),
+  );
 }
 
 class _CancelledBadge extends StatelessWidget {

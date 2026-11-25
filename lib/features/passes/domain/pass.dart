@@ -58,4 +58,7 @@ class Pass {
 
   /// Se puede mostrar en la entrada: vigente, con QR y de un evento que no ha terminado.
   bool get usable => status == PassStatus.valid && qr != null && !eventEnded;
+
+  /// Se puede abrir desde la lista: una vigente muestra su QR y una usada dice que ya se escaneó.
+  bool get opens => usable || status == PassStatus.used;
 }

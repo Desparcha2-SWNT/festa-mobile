@@ -1,4 +1,6 @@
 import 'package:festa/core/network/api_exception.dart';
+import 'package:festa/features/passes/application/passes_providers.dart';
+import 'package:festa/features/passes/data/passes_api.dart';
 import 'package:festa/features/plans/application/plans_providers.dart';
 import 'package:festa/features/plans/data/plans_api.dart';
 import 'package:festa/features/plans/domain/my_plan.dart';
@@ -9,6 +11,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockPlansApi extends Mock implements PlansApi {}
+
+class _MockPassesApi extends Mock implements PassesApi {}
 
 MyPlan _plan(String id, {String? title, String? venue, PlanStatus status = PlanStatus.confirmed}) => MyPlan(
   attendanceId: id,
@@ -54,6 +58,44 @@ void main() {
     expect(find.text('sáb 14 nov · 3:05 p. m.'), findsNWidgets(2));
     expect(find.text('Evento cancelado'), findsNothing);
     expect(find.byKey(const Key('plans.loadMore.upcoming')), findsNothing);
+  });
+
+  testWidgets('un plan que no ha terminado dice que la asistencia está confirmada y abre su QR', (tester) async {
+    final starts = DateTime.now().add(const Duration(days: 2));
+    final plan = MyPlan(
+      attendanceId: 'a1',
+      eventId: 'e1',
+      title: 'Noche de jazz',
+      startsAt: starts,
+      endsAt: starts.add(const Duration(hours: 3)),
+      status: PlanStatus.confirmed,
+    );
+    when(() => api.list(PlansTab.upcoming)).thenAnswer((_) async => _page([plan]));
+    final passesApi = _MockPassesApi();
+    when(passesApi.mine).thenAnswer((_) async => []);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [plansApiProvider.overrideWithValue(api), passesApiProvider.overrideWithValue(passesApi)],
+        child: const MaterialApp(home: MyPlansScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Asistencia confirmada'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('plans.qr.a1')));
+    await tester.pumpAndSettle();
+
+    verify(passesApi.mine).called(1);
+    expect(find.byKey(const Key('passes.forEvent.missing')), findsOneWidget);
+  });
+
+  testWidgets('un plan que ya terminó no ofrece el QR', (tester) async {
+    when(() => api.list(PlansTab.upcoming)).thenAnswer((_) async => _page([_plan('a1', title: 'Ya fue')]));
+
+    await pump(tester);
+
+    expect(find.byKey(const Key('plans.qr.a1')), findsNothing);
   });
 
   testWidgets('sin planes próximos lo dice', (tester) async {

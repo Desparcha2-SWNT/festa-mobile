@@ -77,20 +77,85 @@ void main() {
     await tester.tap(find.byKey(const Key('passes.item.p1')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Tu entrada'), findsOneWidget);
+    // Figma 10 «Mi boleto»: chip de estado, horario de inicio a fin y aviso de un solo uso.
+    expect(find.text('Mi entrada'), findsOneWidget);
+    expect(find.text('Válido · 1 persona'), findsOneWidget);
+    expect(find.text('jue 14 nov · 3:05 p. m. a 6:05 p. m.'), findsOneWidget);
     final qr = tester.widget<QrImageView>(find.byKey(const Key('passes.qr')));
     expect(qr.semanticsLabel, 'Código QR de tu entrada');
-    expect(find.text('Muéstralo en la entrada. Sirve una sola vez.'), findsOneWidget);
+    expect(find.textContaining('Un solo uso: una vez escaneado, el código queda invalidado.'), findsOneWidget);
   });
 
-  testWidgets('una entrada usada o cancelada no abre el QR', (tester) async {
+  testWidgets('una boleta comprada se titula «Mi boleto»', (tester) async {
+    when(() => api.mine()).thenAnswer((_) async => [_pass('p1', ticket: true)]);
+
+    await pump(tester);
+    await tester.tap(find.byKey(const Key('passes.item.p1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mi boleto'), findsOneWidget);
+  });
+
+  testWidgets('una entrada usada se abre sin QR y dice que ya se escaneó (Figma 10b)', (tester) async {
     when(() => api.mine()).thenAnswer((_) async => [_pass('p2', status: PassStatus.used)]);
 
     await pump(tester);
     await tester.tap(find.byKey(const Key('passes.item.p2')));
     await tester.pumpAndSettle();
 
+    expect(find.text('Ya usado'), findsOneWidget);
     expect(find.byKey(const Key('passes.qr')), findsNothing);
+    expect(find.byKey(const Key('passes.qr.used')), findsOneWidget);
+    expect(find.text('Este boleto ya se escaneó. Un código solo sirve una vez.'), findsOneWidget);
+  });
+
+  testWidgets('una entrada cancelada no se abre', (tester) async {
+    when(() => api.mine()).thenAnswer((_) async => [_pass('p3', status: PassStatus.revoked)]);
+
+    await pump(tester);
+    await tester.tap(find.byKey(const Key('passes.item.p3')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('passes.status')), findsNothing);
+  });
+
+  testWidgets('desde un plan abre el QR de su evento', (tester) async {
+    when(() => api.mine()).thenAnswer((_) async => [_pass('p2', status: PassStatus.used), _pass('p1')]);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [passesApiProvider.overrideWithValue(api)],
+        child: const MaterialApp(home: PassForEventScreen(eventId: 'e-p1')),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('passes.qr')), findsOneWidget);
+  });
+
+  testWidgets('desde un plan sin entrada lo dice', (tester) async {
+    when(() => api.mine()).thenAnswer((_) async => [_pass('p1')]);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [passesApiProvider.overrideWithValue(api)],
+        child: const MaterialApp(home: PassForEventScreen(eventId: 'otro')),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('passes.forEvent.missing')), findsOneWidget);
+  });
+
+  test('el horario muestra la fecha completa de fin si el evento termina otro día', () {
+    final starts = DateTime(2030, 11, 14, 22);
+    expect(formatPassSchedule(starts, DateTime(2030, 11, 15, 2)), 'jue 14 nov · 10:00 p. m. a vie 15 nov · 2:00 a. m.');
+    expect(formatPassSchedule(starts, null), 'jue 14 nov · 10:00 p. m.');
+  });
+
+  test('la entrada de un evento prefiere la vigente y si no, la usada', () {
+    expect(passForEvent([_pass('p2', status: PassStatus.used)], 'e-p2')?.passId, 'p2');
+    expect(passForEvent([_pass('p3', status: PassStatus.revoked)], 'e-p3'), isNull);
   });
 
   testWidgets('sin entradas lo dice', (tester) async {
