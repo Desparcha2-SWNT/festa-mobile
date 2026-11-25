@@ -39,9 +39,11 @@ class Event {
     required this.location,
     required this.organizerName,
     required this.organizerIsMerchant,
+    this.organizerId,
     required this.ticketed,
     required this.priceCents,
     this.capacity,
+    this.maxTicketsPerOrder,
     this.coverImageUrl,
     this.status = EventStatus.published,
   });
@@ -60,11 +62,13 @@ class Event {
       venueName: venue['name'] as String,
       venueAddress: venue['address'] as String,
       location: GeoPoint(latitude: (location['lat'] as num).toDouble(), longitude: (location['lng'] as num).toDouble()),
+      organizerId: json['organizerId'] as String?,
       organizerName: json['organizerName'] as String,
       organizerIsMerchant: json['organizerType'] == 'merchant',
       ticketed: json['ticketed'] as bool? ?? false,
       priceCents: json['priceCents'] as int? ?? 0,
       capacity: json['capacity'] as int?,
+      maxTicketsPerOrder: json['maxTicketsPerOrder'] as int?,
       coverImageUrl: json['coverImageUrl'] as String?,
       status: EventStatus.fromApi(json['status'] as String?),
     );
@@ -92,6 +96,7 @@ class Event {
       ticketed: json['ticketed'] as bool? ?? false,
       priceCents: json['priceCents'] as int? ?? 0,
       capacity: json['capacity'] as int?,
+      maxTicketsPerOrder: json['maxTicketsPerOrder'] as int?,
       coverImageUrl: json['coverImageUrl'] as String?,
     );
   }
@@ -109,6 +114,7 @@ class Event {
     'ticketed': ticketed,
     'priceCents': priceCents,
     'capacity': capacity,
+    'maxTicketsPerOrder': maxTicketsPerOrder,
     'coverImageUrl': coverImageUrl,
   };
 
@@ -125,10 +131,16 @@ class Event {
   final String organizerName;
   final bool organizerIsMerchant;
 
+  /// Cuenta que publicó el evento. Solo viene en el detalle (`toApi`), no en la búsqueda del mapa.
+  final String? organizerId;
+
   /// Solo un comercio verificado puede vender boletas (lo exige event-service al crear el evento).
   final bool ticketed;
   final int priceCents;
   final int? capacity;
+
+  /// Máximo de boletas por orden que fija el organizador (event-service); null si no lo informa.
+  final int? maxTicketsPerOrder;
   final String? coverImageUrl;
   final EventStatus status;
 

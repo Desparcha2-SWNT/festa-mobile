@@ -6,14 +6,21 @@ import '../../../app/design/design.dart';
 import '../../../app/routes.dart';
 import '../../../core/network/api_exception.dart';
 import '../../attendance/presentation/attendance_bar.dart';
+import '../../auth/application/session_controller.dart';
+import '../../orders/presentation/ticket_bar.dart';
+import '../../reports/domain/report.dart';
+import '../../reports/presentation/report_sheet.dart';
 import '../application/events_providers.dart';
 import '../domain/event.dart';
 import 'event_category_color.dart';
 import 'event_formatters.dart';
+import 'event_share.dart';
 
 /// SCRUM-75: detalle de un evento. Diseño: Figma «9 · Detalle del evento».
 ///
 /// Abajo, «Confirmo que voy» y los cupos ocupados (SCRUM-70) para los eventos gratis.
+/// Arriba, el botón para compartir el evento (SCRUM-107, RF13) y el menú para reportar el evento o a su
+/// organizador (SCRUM-109, RF14).
 class EventDetailScreen extends ConsumerWidget {
   const EventDetailScreen({super.key, required this.eventId});
 
@@ -23,7 +30,15 @@ class EventDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final detail = ref.watch(eventDetailProvider(eventId));
     return Scaffold(
-      appBar: AppBar(title: const Text('Detalle')),
+      appBar: AppBar(
+        title: const Text('Detalle'),
+        actions: [
+          // Un evento cancelado no se comparte: invitaría a un plan que ya no existe.
+          if (detail case AsyncData(:final value) when value.status != EventStatus.cancelled)
+            _ShareButton(event: value),
+          if (detail case AsyncData(:final value)) _ReportMenu(event: value),
+        ],
+      ),
       body: switch (detail) {
         AsyncData(:final value) => _EventDetail(event: value),
         AsyncError(:final error) => _LoadError(
@@ -106,6 +121,7 @@ class _EventDetail extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (AttendanceBar.appliesTo(event)) ...[AttendanceBar(event: event), const SizedBox(height: 8)],
+                  if (TicketBar.appliesTo(event)) ...[TicketBar(event: event), const SizedBox(height: 8)],
                   OutlinedButton(
                     key: const Key('eventDetail.showOnMap'),
                     onPressed: () => _showOnMap(context, ref),
@@ -114,6 +130,71 @@ class _EventDetail extends ConsumerWidget {
                 ],
               ),
             ),
+          ),
+      ],
+    );
+  }
+}
+
+class _ShareButton extends ConsumerWidget {
+  const _ShareButton({required this.event});
+
+  final Event event;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => IconButton(
+    key: const Key('eventDetail.share'),
+    tooltip: 'Compartir',
+    icon: const Icon(Icons.share_outlined),
+    onPressed: () {
+      final box = context.findRenderObject() as RenderBox?;
+      final origin = box == null ? null : box.localToGlobal(Offset.zero) & box.size;
+      ref.read(eventSharerProvider).share(event, origin: origin);
+    },
+  );
+}
+
+enum _ReportAction { event, organizer }
+
+/// Menú «⋮» con las opciones de reporte. No aparece en los eventos propios: nadie se reporta a sí mismo.
+class _ReportMenu extends ConsumerWidget {
+  const _ReportMenu({required this.event});
+
+  final Event event;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final accountId = ref.watch(sessionControllerProvider.select((session) => session.value?.id));
+    final organizerId = event.organizerId;
+    if (accountId != null && accountId == organizerId) return const SizedBox.shrink();
+    return PopupMenuButton<_ReportAction>(
+      key: const Key('eventDetail.menu'),
+      tooltip: 'Más opciones',
+      onSelected: (action) => switch (action) {
+        _ReportAction.event => showReportSheet(
+          context,
+          target: ReportTarget.event,
+          targetId: event.id,
+          subject: event.title,
+        ),
+        _ReportAction.organizer => showReportSheet(
+          context,
+          target: ReportTarget.user,
+          targetId: organizerId!,
+          subject: event.organizerName,
+        ),
+      },
+      itemBuilder: (_) => [
+        const PopupMenuItem(
+          key: Key('eventDetail.reportEvent'),
+          value: _ReportAction.event,
+          child: ListTile(leading: Icon(Icons.flag_outlined), title: Text('Reportar evento')),
+        ),
+        if (organizerId != null)
+          const PopupMenuItem(
+            key: Key('eventDetail.reportOrganizer'),
+            value: _ReportAction.organizer,
+            child: ListTile(leading: Icon(Icons.person_off_outlined), title: Text('Reportar al organizador')),
           ),
       ],
     );

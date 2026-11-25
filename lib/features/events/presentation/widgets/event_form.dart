@@ -6,6 +6,7 @@ import '../../../map/presentation/widgets/location_picker_field.dart';
 import '../../domain/event.dart';
 import '../../domain/event_draft.dart';
 import '../event_formatters.dart';
+import 'ai_description_assistant.dart';
 
 /// Campos de un evento con sus validaciones (RF4). Lo usan crear (SCRUM-63, Figma «5») y editar
 /// (SCRUM-67, Figma «25»): cada pantalla pone su título, el texto del botón y sus acciones extra.
@@ -18,6 +19,7 @@ class EventForm extends StatefulWidget {
     this.submitting = false,
     this.header,
     this.footer,
+    this.merchantId,
   });
 
   final EventDraft initial;
@@ -30,6 +32,9 @@ class EventForm extends StatefulWidget {
 
   /// Va debajo del botón principal (por ejemplo, «Cancelar evento»).
   final Widget? footer;
+
+  /// Comercio que organiza el evento: se le manda a la IA para que redacte con su nombre (RF9).
+  final String? merchantId;
 
   @override
   State<EventForm> createState() => _EventFormState();
@@ -49,6 +54,9 @@ class _EventFormState extends State<EventForm> {
   late TimeOfDay _endTime;
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
 
+  /// Si el texto que hay en la descripción lo redactó la IA (RF9).
+  late bool _aiGenerated;
+
   @override
   void initState() {
     super.initState();
@@ -58,6 +66,7 @@ class _EventFormState extends State<EventForm> {
     _venueAddress = TextEditingController(text: draft.venueAddress);
     _capacity = TextEditingController(text: draft.capacity?.toString());
     _description = TextEditingController(text: draft.description);
+    _aiGenerated = draft.descriptionAiGenerated;
     _location = draft.location;
     _category = draft.category;
     _date = DateUtils.dateOnly(draft.startsAt);
@@ -87,6 +96,22 @@ class _EventFormState extends State<EventForm> {
     return null;
   }
 
+  /// Lo que la IA necesita para redactar: nombre y lugar son obligatorios. Si la persona ya escribió algo
+  /// en la descripción (y no es un texto anterior de la IA), se manda como notas para que lo tenga en cuenta.
+  DescriptionRequest? _descriptionRequest() {
+    final name = _title.text.trim();
+    final venue = _venueName.text.trim();
+    if (name.length < 3 || venue.length < 2) return null;
+    return DescriptionRequest(
+      name: name,
+      location: venue,
+      category: _category,
+      startsAt: _at(_startTime),
+      notes: _aiGenerated ? null : _description.text,
+      merchantId: widget.merchantId,
+    );
+  }
+
   void _submit() {
     final valid = _formKey.currentState!.validate();
     if (!valid || _scheduleError() != null) {
@@ -104,6 +129,7 @@ class _EventFormState extends State<EventForm> {
         endsAt: _at(_endTime),
         category: _category,
         description: _description.text.trim(),
+        descriptionAiGenerated: _aiGenerated,
         capacity: capacity.isEmpty ? null : int.parse(capacity),
       ),
     );
@@ -241,6 +267,15 @@ class _EventFormState extends State<EventForm> {
                   maxLength: 2000,
                   validator: (value) => _required(value, 'Cuéntale a la gente de qué se trata el plan.'),
                   decoration: const InputDecoration(labelText: 'Descripción', alignLabelWithHint: true),
+                ),
+                const SizedBox(height: 8),
+                AiDescriptionAssistant(
+                  buildRequest: _descriptionRequest,
+                  generated: _aiGenerated,
+                  onGenerated: (text) => setState(() {
+                    _description.text = text;
+                    _aiGenerated = true;
+                  }),
                 ),
               ],
             ),

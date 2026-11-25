@@ -7,10 +7,12 @@ import '../features/auth/application/session_controller.dart';
 import '../features/auth/domain/account.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
+import '../features/chat/presentation/chat_screen.dart';
 import '../features/dashboard/presentation/merchant_dashboard_screen.dart';
 import '../features/events/presentation/create_event_screen.dart';
 import '../features/events/presentation/edit_event_screen.dart';
 import '../features/events/presentation/event_detail_screen.dart';
+import '../features/checkin/presentation/check_in_screen.dart';
 import '../features/events/presentation/my_events_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/location/application/location_consent_controller.dart';
@@ -74,7 +76,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Routes.eventAttendees,
         builder: (_, state) => EventAttendeesScreen(eventId: state.pathParameters['id']!),
       ),
+      GoRoute(
+        path: Routes.eventCheckIn,
+        builder: (_, state) => CheckInScreen(eventId: state.pathParameters['id']!),
+      ),
       GoRoute(path: Routes.plans, builder: (_, _) => const MyPlansScreen()),
+      GoRoute(path: Routes.chat, builder: (_, _) => const ChatScreen()),
       GoRoute(path: Routes.merchantDashboard, builder: (_, _) => const MerchantDashboardScreen()),
       StatefulShellRoute.indexedStack(
         builder: (_, _, navigationShell) => AppShell(navigationShell: navigationShell),
