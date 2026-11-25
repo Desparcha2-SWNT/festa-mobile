@@ -6,6 +6,7 @@ import 'package:festa/features/location/application/location_providers.dart';
 import 'package:festa/features/location/domain/location_consent.dart';
 import 'package:festa/features/merchant/application/merchant_providers.dart';
 import 'package:festa/features/merchant/domain/merchant_profile.dart';
+import 'package:festa/features/passes/data/passes_cache.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,6 +18,7 @@ void main() {
   late MockAuthApi api;
   late MockMerchantApi merchantApi;
   late InMemoryTokenStorage storage;
+  late InMemoryPassesCache passesCache;
 
   setUpAll(() {
     registerFallbackValue(AccountType.user);
@@ -27,6 +29,7 @@ void main() {
     api = MockAuthApi();
     merchantApi = MockMerchantApi();
     storage = InMemoryTokenStorage();
+    passesCache = InMemoryPassesCache();
   });
 
   Future<void> pumpApp(WidgetTester tester) async {
@@ -36,6 +39,7 @@ void main() {
           authApiProvider.overrideWithValue(api),
           merchantApiProvider.overrideWithValue(merchantApi),
           tokenStorageProvider.overrideWithValue(storage),
+          passesCacheProvider.overrideWithValue(passesCache),
           // La cuenta de prueba ya decidió sobre su ubicación: estas pruebas son del flujo de auth.
           locationConsentStoreProvider.overrideWithValue(
             InMemoryLocationConsentStore()
@@ -140,6 +144,8 @@ void main() {
 
     verify(() => api.logout('refresh-1')).called(1);
     expect(storage.refreshToken, isNull);
+    // Las entradas guardadas para usar sin conexión se borran del teléfono (SCRUM-91).
+    expect(passesCache.clears, 1);
     expect(find.text('Iniciar sesión'), findsOneWidget);
   });
 

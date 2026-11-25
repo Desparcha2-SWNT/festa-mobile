@@ -18,18 +18,25 @@ class MyPassesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) => Scaffold(
     appBar: AppBar(title: const Text('Mis entradas')),
     body: switch (ref.watch(myPassesProvider)) {
-      AsyncData(:final value) => RefreshIndicator(
-        onRefresh: () => ref.refresh(myPassesProvider.future),
-        child: value.isEmpty
-            ? ListView(physics: const AlwaysScrollableScrollPhysics(), children: const [_EmptyView()])
-            : ListView.separated(
-                key: const Key('passes.list'),
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(vertical: FestaSpace.sm),
-                itemCount: value.length,
-                separatorBuilder: (_, _) => const Divider(height: 1),
-                itemBuilder: (context, i) => _PassTile(pass: value[i]),
-              ),
+      AsyncData(:final value) => Column(
+        children: [
+          if (value.offlineSince case final savedAt?) _OfflineBanner(savedAt: savedAt),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () => ref.refresh(myPassesProvider.future),
+              child: value.passes.isEmpty
+                  ? ListView(physics: const AlwaysScrollableScrollPhysics(), children: const [_EmptyView()])
+                  : ListView.separated(
+                      key: const Key('passes.list'),
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(vertical: FestaSpace.sm),
+                      itemCount: value.passes.length,
+                      separatorBuilder: (_, _) => const Divider(height: 1),
+                      itemBuilder: (context, i) => _PassTile(pass: value.passes[i]),
+                    ),
+            ),
+          ),
+        ],
       ),
       AsyncError(:final error) => _ErrorView(
         message: error is ApiException ? error.message : 'Intenta de nuevo.',
@@ -38,6 +45,38 @@ class MyPassesScreen extends ConsumerWidget {
       _ => const Center(child: CircularProgressIndicator()),
     },
   );
+}
+
+/// SCRUM-91: sin red se muestran las entradas guardadas en el teléfono. El QR está firmado y se valida
+/// igual en la puerta; lo que puede estar desactualizado es el estado (por ejemplo, una cancelación).
+class _OfflineBanner extends StatelessWidget {
+  const _OfflineBanner({required this.savedAt});
+
+  final DateTime savedAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Material(
+      key: const Key('passes.offline'),
+      color: colors.surfaceContainerHighest,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: FestaSpace.md, vertical: FestaSpace.sm),
+        child: Row(
+          children: [
+            Icon(Icons.cloud_off, size: 20, color: colors.onSurfaceVariant),
+            const SizedBox(width: FestaSpace.sm),
+            Expanded(
+              child: Text(
+                'Sin conexión: son tus entradas guardadas el ${formatPlanDate(savedAt)}. El QR sirve igual en la entrada.',
+                style: TextStyle(color: colors.onSurfaceVariant),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _PassTile extends StatelessWidget {

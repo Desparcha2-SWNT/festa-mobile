@@ -14,6 +14,8 @@ import 'package:festa/features/location/domain/location_consent.dart';
 import 'package:festa/features/location/domain/user_location.dart';
 import 'package:festa/features/merchant/data/merchant_api.dart';
 import 'package:festa/features/merchant/domain/merchant_profile.dart';
+import 'package:festa/features/passes/data/passes_cache.dart';
+import 'package:festa/features/passes/domain/pass.dart';
 import 'package:festa/features/profile/data/profile_api.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -158,4 +160,29 @@ class InMemoryExploreCache implements ExploreCache {
   @override
   Future<void> save(List<Event> events, DateTime savedAt) async =>
       cached = CachedEvents(events: events, savedAt: savedAt);
+}
+
+/// Copia de «Mis entradas» en memoria (SCRUM-91), con la misma regla de cuenta que la real.
+class InMemoryPassesCache implements PassesCache {
+  CachedPasses? cached;
+  int clears = 0;
+
+  @override
+  Future<CachedPasses?> read(String accountId) async => cached?.accountId == accountId ? cached : null;
+
+  @override
+  Future<void> save(String accountId, List<Pass> passes, DateTime savedAt) async => cached = CachedPasses(
+    accountId: accountId,
+    passes: [
+      for (final pass in passes)
+        if (pass.usable) pass,
+    ],
+    savedAt: savedAt,
+  );
+
+  @override
+  Future<void> clear() async {
+    clears++;
+    cached = null;
+  }
 }

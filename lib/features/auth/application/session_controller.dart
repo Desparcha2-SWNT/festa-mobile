@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_exception.dart';
 import '../../merchant/application/merchant_providers.dart';
 import '../../merchant/domain/merchant_profile.dart';
+import '../../passes/data/passes_cache.dart';
 import '../domain/account.dart';
 import 'auth_providers.dart';
 
@@ -84,6 +85,10 @@ class SessionController extends AsyncNotifier<Account?> {
 
   Future<void> logout() async {
     await ref.read(authRepositoryProvider).logout();
+    final passesCache = ref.read(passesCacheProvider);
     state = const AsyncData(null);
+    // Las entradas guardadas para usar sin conexión (SCRUM-91) no se quedan en el teléfono. Sin esperar:
+    // cerrar sesión no depende del almacenamiento del sistema, y si falla, igual quedan atadas a la cuenta.
+    unawaited(Future.sync(passesCache.clear).catchError((Object _) {}));
   }
 }
