@@ -14,11 +14,13 @@ import '../application/events_providers.dart';
 import '../domain/event.dart';
 import 'event_category_color.dart';
 import 'event_formatters.dart';
+import 'event_share.dart';
 
 /// SCRUM-75: detalle de un evento. Diseño: Figma «9 · Detalle del evento».
 ///
 /// Abajo, «Confirmo que voy» y los cupos ocupados (SCRUM-70) para los eventos gratis.
-/// Arriba, el menú para reportar el evento o a su organizador (SCRUM-109, RF14).
+/// Arriba, el botón para compartir el evento (SCRUM-107, RF13) y el menú para reportar el evento o a su
+/// organizador (SCRUM-109, RF14).
 class EventDetailScreen extends ConsumerWidget {
   const EventDetailScreen({super.key, required this.eventId});
 
@@ -30,7 +32,12 @@ class EventDetailScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detalle'),
-        actions: [if (detail case AsyncData(:final value)) _ReportMenu(event: value)],
+        actions: [
+          // Un evento cancelado no se comparte: invitaría a un plan que ya no existe.
+          if (detail case AsyncData(:final value) when value.status != EventStatus.cancelled)
+            _ShareButton(event: value),
+          if (detail case AsyncData(:final value)) _ReportMenu(event: value),
+        ],
       ),
       body: switch (detail) {
         AsyncData(:final value) => _EventDetail(event: value),
@@ -127,6 +134,24 @@ class _EventDetail extends ConsumerWidget {
       ],
     );
   }
+}
+
+class _ShareButton extends ConsumerWidget {
+  const _ShareButton({required this.event});
+
+  final Event event;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => IconButton(
+    key: const Key('eventDetail.share'),
+    tooltip: 'Compartir',
+    icon: const Icon(Icons.share_outlined),
+    onPressed: () {
+      final box = context.findRenderObject() as RenderBox?;
+      final origin = box == null ? null : box.localToGlobal(Offset.zero) & box.size;
+      ref.read(eventSharerProvider).share(event, origin: origin);
+    },
+  );
 }
 
 enum _ReportAction { event, organizer }
