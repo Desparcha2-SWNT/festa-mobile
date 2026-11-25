@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:festa/app/routes.dart';
 import 'package:festa/core/config/app_config.dart';
 import 'package:festa/features/events/application/events_providers.dart';
