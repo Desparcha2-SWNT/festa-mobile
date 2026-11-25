@@ -136,7 +136,7 @@ class PassQrScreen extends StatelessWidget {
                 used
                     ? 'Este boleto ya se escaneó. Un código solo sirve una vez.'
                     : 'Un solo uso: una vez escaneado, el código queda invalidado. Sube el brillo al entrar.',
-                key: const Key('passes.hint'),
+                key: Key(used ? 'passes.used' : 'passes.hint'),
                 textAlign: TextAlign.center,
                 style: text.bodyMedium?.copyWith(color: FestaColors.textSecondary),
               ),
