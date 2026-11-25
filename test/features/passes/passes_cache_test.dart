@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:festa/core/network/api_exception.dart';
+import 'package:festa/features/auth/application/auth_providers.dart';
 import 'package:festa/features/auth/application/session_controller.dart';
 import 'package:festa/features/auth/domain/account.dart';
 import 'package:festa/features/passes/application/passes_providers.dart';
@@ -69,6 +70,33 @@ class _SwitchableSession extends SessionController {
   Future<Account?> build() async => testAccount;
 
   void signOut() => state = const AsyncData(null);
+}
+
+/// Copia en memoria que aplica las operaciones en el orden en que llegan, como el almacenamiento seguro del
+/// teléfono. El primer borrado queda detenido hasta [releaseFirstClear], para abrir la ventana de la carrera.
+class _SerialPassesCache extends InMemoryPassesCache {
+  final releaseFirstClear = Completer<void>();
+  final firstClearStarted = Completer<void>();
+  var _clears = 0;
+  Future<void> _queue = Future.value();
+
+  Future<void> _enqueue(Future<void> Function() op) => _queue = _queue.then((_) => op());
+
+  /// Espera a que se apliquen todas las operaciones que ya llegaron.
+  Future<void> flush() => _queue;
+
+  @override
+  Future<void> save(String accountId, List<Pass> passes, DateTime savedAt) =>
+      _enqueue(() => super.save(accountId, passes, savedAt));
+
+  @override
+  Future<void> clear(String accountId) => _enqueue(() async {
+    if (_clears++ == 0) {
+      firstClearStarted.complete();
+      await releaseFirstClear.future;
+    }
+    await super.clear(accountId);
+  });
 }
 
 void main() {
@@ -242,5 +270,35 @@ void main() {
     await Future<void>.delayed(Duration.zero);
 
     expect(cache.copies, isEmpty);
+  });
+
+  test('un guardado que llega mientras se borra la copia al cerrar sesión no deja los QR en el teléfono', () async {
+    final api = MockAuthApi();
+    when(() => api.refresh('refresh-0')).thenAnswer((_) async => testSession());
+    when(() => api.logout(any())).thenAnswer((_) async {});
+    final cache = _SerialPassesCache();
+    final container = ProviderContainer(
+      overrides: [
+        authApiProvider.overrideWithValue(api),
+        tokenStorageProvider.overrideWithValue(InMemoryTokenStorage('refresh-0')),
+        passesCacheProvider.overrideWithValue(cache),
+      ],
+    );
+    addTearDown(container.dispose);
+    expect((await container.read(sessionControllerProvider.future))?.id, testAccount.id);
+
+    final logout = container.read(sessionControllerProvider.notifier).logout();
+    await cache.firstClearStarted.future;
+    // La sesión sigue siendo la de Ana: una descarga de «Mis entradas» que llega ahora pasa el chequeo y guarda
+    // después del primer borrado.
+    expect(container.read(sessionControllerProvider).value?.id, testAccount.id);
+    unawaited(cache.save(testAccount.id, [_pass('p1')], DateTime.utc(2030, 11, 13)));
+    cache.releaseFirstClear.complete();
+    await logout;
+    await cache.flush();
+
+    expect(container.read(sessionControllerProvider).value, isNull);
+    expect(cache.copies, isEmpty);
+    expect(await cache.readLast(), isNull);
   });
 }
