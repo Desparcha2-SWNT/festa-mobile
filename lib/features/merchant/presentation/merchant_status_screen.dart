@@ -60,8 +60,8 @@ class _Pending extends StatelessWidget {
     title: 'Estamos revisando tu perfil',
     body: [
       const _Message(
-        'El equipo de Festa verifica cada comercio a mano. Te avisaremos por notificación y correo. '
-        'Desliza hacia abajo para consultar de nuevo.',
+        'El equipo de Festa verifica cada comercio a mano. '
+        'Desliza hacia abajo para consultar el estado.',
       ),
       const SizedBox(height: 24),
       const _Milestone('Perfil enviado', done: true),
