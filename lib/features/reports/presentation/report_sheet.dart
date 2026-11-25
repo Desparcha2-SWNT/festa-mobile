@@ -59,6 +59,12 @@ class _ReportSheetState extends ConsumerState<ReportSheet> {
   Future<void> _send() async {
     final reason = _reason;
     if (reason == null || _sending) return;
+    // user-service cuenta con `@Size(max = 500)`, en unidades UTF-16 como `String.length`. El contador del
+    // campo cuenta lo que se ve, así que un comentario con muchos emojis puede pasarlo: se revisa aquí.
+    if (_comment.text.trim().length > maxCommentLength) {
+      setState(() => _error = 'El comentario es muy largo. Acórtalo un poco (los emojis cuentan doble).');
+      return;
+    }
     setState(() {
       _sending = true;
       _error = null;

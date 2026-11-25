@@ -179,6 +179,29 @@ void main() {
     expect(find.text('Gracias. El equipo de Festa revisará tu reporte.'), findsOneWidget);
   });
 
+  testWidgets('un comentario que pasa los 500 de user-service por los emojis no se envía', (tester) async {
+    stubCreate(() async {});
+    await pumpDetail(tester);
+
+    await openReport(tester, 'eventDetail.reportEvent');
+    await tapInSheet(tester, 'report.reason.otro');
+    // 300 emojis: el campo ve 300 caracteres, pero son 600 unidades UTF-16 para el servidor.
+    await tester.enterText(find.byKey(const Key('report.comment')), '🎉' * 300);
+    await tester.pump();
+    await tapInSheet(tester, 'report.send');
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('report.error')), findsOneWidget);
+    verifyNever(
+      () => reports.create(
+        target: any(named: 'target'),
+        targetId: any(named: 'targetId'),
+        reason: any(named: 'reason'),
+        comment: any(named: 'comment'),
+      ),
+    );
+  });
+
   testWidgets('el organizador no ve la opción de reportar su propio evento', (tester) async {
     await pumpDetail(tester, session: _SignedInOrganizer.new);
 
