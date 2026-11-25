@@ -488,7 +488,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Al terminar crearemos tu cuenta y el equipo de Festa revisará tu comercio a mano. Te avisamos el resultado.',
+                      'Al terminar crearemos tu cuenta y el equipo de Festa revisará tu comercio a mano. Verás el resultado en la app.',
                       style: TextStyle(fontSize: 12, color: FestaColors.textSecondary),
                     ),
                   ),

@@ -99,6 +99,33 @@ void main() {
     expect(find.text('Entró a las 3:05 p. m.'), findsOneWidget);
   });
 
+  // SCRUM-95: QR inválido, de otro evento y de una entrada cancelada. booking-service responde 409 con el
+  // código del rechazo; en la puerta se lee un mensaje claro y se puede escanear el siguiente.
+  for (final (reason, message) in [
+    ('invalid_signature', 'QR inválido'),
+    ('wrong_event', 'Este QR es de otro evento'),
+    ('revoked', 'Esta entrada fue cancelada'),
+  ]) {
+    testWidgets('un QR rechazado por $reason dice «$message» y deja escanear otro', (tester) async {
+      when(() => api.checkIn(eventId: 'e1', qr: _qr))
+          .thenAnswer((_) async => CheckInResult(valid: false, reason: reason));
+
+      await pump(tester);
+      await scan(tester);
+
+      expect(find.byKey(const Key('checkIn.rejected')), findsOneWidget);
+      expect(find.text(message), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('checkIn.next')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('checkIn.hint')), findsOneWidget);
+    });
+  }
+
+  test('un código de rechazo que la app no conoce se muestra como QR inválido', () {
+    expect(const CheckInResult(valid: false, reason: 'algo_nuevo').message, 'QR inválido');
+  });
+
   testWidgets('mientras se muestra un resultado, otra lectura no se envía', (tester) async {
     when(() => api.checkIn(eventId: 'e1', qr: _qr)).thenAnswer((_) async => const CheckInResult(valid: true));
 
