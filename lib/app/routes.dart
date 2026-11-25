@@ -16,6 +16,9 @@ abstract final class Routes {
   static const plans = '/plans';
   static const passes = '/passes';
 
+  /// «Mis resultados» del comercio (RF15).
+  static const merchantDashboard = '/merchant/dashboard';
+
   /// Chat de recomendaciones con la IA (RF8).
   static const chat = '/chat';
 

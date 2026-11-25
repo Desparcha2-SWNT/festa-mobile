@@ -46,6 +46,15 @@ class MyMerchantScreen extends ConsumerWidget {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+              child: FilledButton.icon(
+                key: const Key('myMerchant.dashboard'),
+                onPressed: () => context.push(Routes.merchantDashboard),
+                icon: const Icon(Icons.bar_chart),
+                label: const Text('Ver mis resultados'),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
               child: OutlinedButton(
                 key: const Key('myMerchant.edit'),
                 onPressed: () => context.push(Routes.merchantForm),
