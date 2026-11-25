@@ -11,6 +11,7 @@ import '../features/chat/presentation/chat_screen.dart';
 import '../features/events/presentation/create_event_screen.dart';
 import '../features/events/presentation/edit_event_screen.dart';
 import '../features/events/presentation/event_detail_screen.dart';
+import '../features/checkin/presentation/check_in_screen.dart';
 import '../features/events/presentation/my_events_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/location/application/location_consent_controller.dart';
@@ -75,6 +76,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.eventAttendees,
         builder: (_, state) => EventAttendeesScreen(eventId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: Routes.eventCheckIn,
+        builder: (_, state) => CheckInScreen(eventId: state.pathParameters['id']!),
       ),
       GoRoute(path: Routes.plans, builder: (_, _) => const MyPlansScreen()),
       GoRoute(path: Routes.chat, builder: (_, _) => const ChatScreen()),
