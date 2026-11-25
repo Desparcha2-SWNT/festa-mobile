@@ -132,7 +132,9 @@ jobs:
         run: |
           flutter build apk --release \
             ${API_URL:+--dart-define=API_BASE_URL=$API_URL} \
-            ${MAPBOX_TOKEN:+--dart-define=MAPBOX_ACCESS_TOKEN=$MAPBOX_TOKEN}
+            ${MAPBOX_TOKEN:+--dart-define=MAPBOX_ACCESS_TOKEN=$MAPBOX_TOKEN} \
+            --dart-define=APP_COMMIT=${{ github.sha }} \
+            --dart-define=APP_BUILD=${{ github.run_number }}
 
       - name: Preparar el artefacto
         id: artefacto
