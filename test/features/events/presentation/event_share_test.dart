@@ -38,6 +38,16 @@ void main() {
     ]);
   });
 
+  test('sin dirección no deja la coma colgando', () {
+    final json = eventJson();
+    final event = Event.fromJson({
+      ...json,
+      'venue': {...json['venue'] as Map<String, dynamic>, 'address': ''},
+    });
+
+    expect(eventShareText(event), contains('📍 Bloque I\n'));
+  });
+
   test('un evento gratis dice «Gratis»', () {
     expect(eventShareText(Event.fromJson(eventJson())), contains('🎟️ Gratis'));
   });

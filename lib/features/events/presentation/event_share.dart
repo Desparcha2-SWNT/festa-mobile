@@ -12,7 +12,7 @@ import 'event_formatters.dart';
 String eventShareText(Event event) => [
   event.title,
   '📅 ${EventFormatters.schedule(event)}',
-  '📍 ${event.venueName}, ${event.venueAddress}',
+  '📍 ${[event.venueName, event.venueAddress].where((part) => part.trim().isNotEmpty).join(', ')}',
   '🎟️ ${EventFormatters.price(event)}',
   '',
   'Lo encontré en Festa, el mapa de planes de la Escuela: ${AppConfig.downloadUrl}',
