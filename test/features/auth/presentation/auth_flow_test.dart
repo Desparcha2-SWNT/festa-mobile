@@ -198,8 +198,9 @@ void main() {
 
     verify(() => api.logout('refresh-1')).called(1);
     expect(storage.refreshToken, isNull);
-    // Las entradas guardadas para usar sin conexión se borran del teléfono (SCRUM-91).
-    expect(passesCache.cleared, [testAccount.id]);
+    // Las entradas guardadas para usar sin conexión se borran del teléfono (SCRUM-91): antes de publicar la
+    // sesión nula y otra vez después, por si una descarga alcanzó a guardar en medio. Solo la cuenta que salió.
+    expect(passesCache.cleared, [testAccount.id, testAccount.id]);
     expect(find.text('Iniciar sesión'), findsOneWidget);
   });
 
