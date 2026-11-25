@@ -206,9 +206,7 @@ class PassQrScreen extends StatelessWidget {
               ),
               const SizedBox(height: FestaSpace.xl),
               Text(
-                used
-                    ? 'Este boleto ya se escaneó. Un código solo sirve una vez.'
-                    : 'Un solo uso: una vez escaneado, el código queda invalidado. Sube el brillo al entrar.',
+                used ? 'Este boleto ya se escaneó. Un código solo sirve una vez.' : 'Un solo uso: una vez escaneado, el código queda invalidado. Funciona sin conexión: queda guardado en el celular. Sube el brillo al entrar.',
                 key: const Key('passes.hint'),
                 textAlign: TextAlign.center,
                 style: text.bodyMedium?.copyWith(color: FestaColors.textSecondary),
@@ -251,7 +249,7 @@ class PassForEventScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final passes = ref.watch(myPassesProvider);
     if (passes case AsyncData(:final value)) {
-      final pass = passForEvent(value, eventId);
+      final pass = passForEvent(value.passes, eventId);
       if (pass != null) return PassQrScreen(pass: pass);
     }
     return Scaffold(
