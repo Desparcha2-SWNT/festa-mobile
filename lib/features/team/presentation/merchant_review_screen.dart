@@ -7,6 +7,7 @@ import '../application/team_providers.dart';
 import '../domain/pending_merchant.dart';
 import 'merchant_request_screen.dart';
 import 'submitted_formatters.dart';
+import 'team_widgets.dart';
 
 /// SCRUM-61 (RF3), Figma «28 · Revisión de comercios»: el equipo Festa ve los comercios que esperan
 /// verificación y abre cada solicitud para aprobarla o rechazarla.
@@ -55,7 +56,7 @@ class MerchantReviewScreen extends ConsumerWidget {
                     ? ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         children: const [
-                          _Message(
+                          TeamMessage(
                             key: Key('team.merchants.empty'),
                             title: 'No hay comercios por verificar',
                             body: 'Cuando un comercio envíe su perfil, aparecerá aquí.',
@@ -76,7 +77,7 @@ class MerchantReviewScreen extends ConsumerWidget {
                       ),
               ),
               AsyncError(:final error) => Center(
-                child: _Message(
+                child: TeamMessage(
                   key: const Key('team.merchants.error'),
                   title: 'No pudimos cargar los comercios',
                   body: error is ApiException ? error.message : 'Intenta de nuevo.',
@@ -153,27 +154,5 @@ class PendingBadge extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: FestaSpace.sm, vertical: FestaSpace.xxs),
     decoration: BoxDecoration(color: FestaColors.bgLive, borderRadius: BorderRadius.circular(FestaRadius.full)),
     child: Text('Pendiente', style: Theme.of(context).textTheme.labelMedium),
-  );
-}
-
-class _Message extends StatelessWidget {
-  const _Message({required this.title, required this.body, this.action, super.key});
-
-  final String title;
-  final String body;
-  final Widget? action;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.all(FestaSpace.xxl),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(title, style: Theme.of(context).textTheme.titleMedium, textAlign: TextAlign.center),
-        const SizedBox(height: FestaSpace.xs),
-        Text(body, textAlign: TextAlign.center),
-        if (action != null) ...[const SizedBox(height: FestaSpace.xl), action!],
-      ],
-    ),
   );
 }

@@ -7,6 +7,7 @@ import '../application/team_providers.dart';
 import '../data/team_merchants_api.dart';
 import '../domain/pending_merchant.dart';
 import 'submitted_formatters.dart';
+import 'team_widgets.dart';
 
 /// SCRUM-61 (RF3), Figma «29 · Solicitud de comercio»: los datos que envió el comercio y la decisión del
 /// equipo. Al aprobar, user-service le da el rol `merchant` y ya puede publicar; al rechazar, el comercio ve
@@ -107,13 +108,13 @@ class _MerchantRequestScreenState extends ConsumerState<MerchantRequestScreen> {
           children: [
             Text(draft.businessName, style: text.headlineMedium),
             const SizedBox(height: FestaSpace.md),
-            _Field(label: 'Categoría', value: draft.category.label),
-            _Field(label: 'Ubicación', value: draft.address),
-            if (draft.description.trim().isNotEmpty) _Field(label: 'Descripción', value: draft.description),
+            TeamField(label: 'Categoría', value: draft.category.label),
+            TeamField(label: 'Ubicación', value: draft.address),
+            if (draft.description.trim().isNotEmpty) TeamField(label: 'Descripción', value: draft.description),
             if (submitted != null)
-              _Field(label: 'Enviado', value: '${submittedLong(submitted, now)} · cuenta de comercio'),
+              TeamField(label: 'Enviado', value: '${submittedLong(submitted, now)} · cuenta de comercio'),
             const SizedBox(height: FestaSpace.xs),
-            const _InfoBox('Revisa que el lugar y la descripción sean reales antes de aprobar.'),
+            const TeamInfoBox('Revisa que el lugar y la descripción sean reales antes de aprobar.'),
           ],
         ),
         bottomNavigationBar: SafeArea(
@@ -141,54 +142,6 @@ class _MerchantRequestScreenState extends ConsumerState<MerchantRequestScreen> {
       ),
     );
   }
-}
-
-/// Dato de la solicitud: etiqueta pequeña y el valor debajo, como en el Figma 29.
-class _Field extends StatelessWidget {
-  const _Field({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: FestaSpace.sm),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: text.bodySmall?.copyWith(color: FestaColors.textSecondary)),
-          const SizedBox(height: FestaSpace.xxs),
-          Text(value, style: text.bodyLarge),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoBox extends StatelessWidget {
-  const _InfoBox(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => DecoratedBox(
-    decoration: BoxDecoration(color: FestaColors.bgSubtle, borderRadius: FestaRadius.mdAll),
-    child: Padding(
-      padding: const EdgeInsets.all(FestaSpace.sm),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.info_outline, size: 20, color: FestaColors.textSecondary),
-          const SizedBox(width: FestaSpace.xs),
-          Expanded(
-            child: Text(text, style: const TextStyle(color: FestaColors.textSecondary)),
-          ),
-        ],
-      ),
-    ),
-  );
 }
 
 /// Pide el motivo del rechazo: obligatorio y de hasta 500 caracteres, como exige user-service. El comercio
