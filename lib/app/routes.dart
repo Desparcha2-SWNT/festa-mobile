@@ -22,9 +22,14 @@ abstract final class Routes {
   /// Lista de asistentes de un evento, para su organizador (SCRUM-141).
   static const eventAttendees = '/events/:id/attendees';
 
+  /// Escáner de QR en la puerta de un evento, para su organizador (SCRUM-92).
+  static const eventCheckIn = '/events/:id/check-in';
+
   static String eventDetail(String id) => '/events/$id';
 
   static String editEvent(String id) => '/my-events/$id/edit';
 
   static String attendeesOf(String eventId) => '/events/$eventId/attendees';
+
+  static String checkInOf(String eventId) => '/events/$eventId/check-in';
 }

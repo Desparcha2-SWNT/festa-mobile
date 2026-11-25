@@ -20,6 +20,13 @@ abstract final class AppConfig {
   static const String commit = String.fromEnvironment('APP_COMMIT');
   static const String buildRun = String.fromEnvironment('APP_BUILD');
 
+  /// Dónde descargar la app. Va en el texto al compartir un evento (SCRUM-107): mientras no haya enlaces
+  /// profundos (SCRUM-108), quien recibe el mensaje llega por aquí.
+  static const String downloadUrl = String.fromEnvironment(
+    'DOWNLOAD_URL',
+    defaultValue: 'https://github.com/Desparcha2-SWNT/festa-mobile/releases/latest',
+  );
+
   static const Duration connectTimeout = Duration(seconds: 10);
   static const Duration receiveTimeout = Duration(seconds: 20);
 }

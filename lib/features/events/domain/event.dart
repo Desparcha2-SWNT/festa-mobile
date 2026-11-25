@@ -39,6 +39,7 @@ class Event {
     required this.location,
     required this.organizerName,
     required this.organizerIsMerchant,
+    this.organizerId,
     required this.ticketed,
     required this.priceCents,
     this.capacity,
@@ -61,6 +62,7 @@ class Event {
       venueName: venue['name'] as String,
       venueAddress: venue['address'] as String,
       location: GeoPoint(latitude: (location['lat'] as num).toDouble(), longitude: (location['lng'] as num).toDouble()),
+      organizerId: json['organizerId'] as String?,
       organizerName: json['organizerName'] as String,
       organizerIsMerchant: json['organizerType'] == 'merchant',
       ticketed: json['ticketed'] as bool? ?? false,
@@ -128,6 +130,9 @@ class Event {
   final GeoPoint location;
   final String organizerName;
   final bool organizerIsMerchant;
+
+  /// Cuenta que publicó el evento. Solo viene en el detalle (`toApi`), no en la búsqueda del mapa.
+  final String? organizerId;
 
   /// Solo un comercio verificado puede vender boletas (lo exige event-service al crear el evento).
   final bool ticketed;
