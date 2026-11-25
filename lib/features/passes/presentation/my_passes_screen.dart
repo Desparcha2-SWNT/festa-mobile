@@ -8,6 +8,7 @@ import '../../../app/design/design.dart';
 import '../../../core/network/api_exception.dart';
 import '../../plans/presentation/plan_formatters.dart';
 import '../application/passes_providers.dart';
+import '../data/passes_cache.dart';
 import '../domain/pass.dart';
 
 /// SCRUM-90: «Mis entradas». Cada asistencia gratis o boleta con su QR para mostrar en la entrada.
@@ -18,25 +19,10 @@ class MyPassesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) => Scaffold(
     appBar: AppBar(title: const Text('Mis entradas')),
     body: switch (ref.watch(myPassesProvider)) {
-      AsyncData(:final value) => Column(
-        children: [
-          if (value.offlineSince case final savedAt?) _OfflineBanner(savedAt: savedAt),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: () => ref.refresh(myPassesProvider.future),
-              child: value.passes.isEmpty
-                  ? ListView(physics: const AlwaysScrollableScrollPhysics(), children: const [_EmptyView()])
-                  : ListView.separated(
-                      key: const Key('passes.list'),
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(vertical: FestaSpace.sm),
-                      itemCount: value.passes.length,
-                      separatorBuilder: (_, _) => const Divider(height: 1),
-                      itemBuilder: (context, i) => _PassTile(pass: value.passes[i]),
-                    ),
-            ),
-          ),
-        ],
+      AsyncData(:final value) => _PassesBody(
+        passes: value.passes,
+        offlineSince: value.offlineSince,
+        onRefresh: () => ref.refresh(myPassesProvider.future),
       ),
       AsyncError(:final error) => _ErrorView(
         message: error is ApiException ? error.message : 'Intenta de nuevo.',
@@ -45,6 +31,54 @@ class MyPassesScreen extends ConsumerWidget {
       _ => const Center(child: CircularProgressIndicator()),
     },
   );
+}
+
+/// SCRUM-91: las entradas guardadas en el teléfono, desde el login. Si la app abre sin señal no puede
+/// recuperar la sesión y manda al login; desde ahí se llega al QR sin red.
+class SavedPassesScreen extends StatelessWidget {
+  const SavedPassesScreen({required this.saved, super.key});
+
+  final CachedPasses saved;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Mis entradas guardadas')),
+    body: _PassesBody(passes: saved.passes, offlineSince: saved.savedAt),
+  );
+}
+
+/// La lista de entradas, con el aviso de sin conexión cuando viene de la copia del teléfono.
+class _PassesBody extends StatelessWidget {
+  const _PassesBody({required this.passes, this.offlineSince, this.onRefresh});
+
+  final List<Pass> passes;
+  final DateTime? offlineSince;
+
+  /// `null` donde no hay sesión para pedir la lista (desde el login).
+  final Future<void> Function()? onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget list = passes.isEmpty
+        ? ListView(physics: const AlwaysScrollableScrollPhysics(), children: const [_EmptyView()])
+        : ListView.separated(
+            key: const Key('passes.list'),
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(vertical: FestaSpace.sm),
+            itemCount: passes.length,
+            separatorBuilder: (_, _) => const Divider(height: 1),
+            itemBuilder: (context, i) => _PassTile(pass: passes[i]),
+          );
+    final refresh = onRefresh;
+    return Column(
+      children: [
+        if (offlineSince case final savedAt?) _OfflineBanner(savedAt: savedAt),
+        Expanded(
+          child: refresh == null ? list : RefreshIndicator(onRefresh: refresh, child: list),
+        ),
+      ],
+    );
+  }
 }
 
 /// SCRUM-91: sin red se muestran las entradas guardadas en el teléfono. El QR está firmado y se valida

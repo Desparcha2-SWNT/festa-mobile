@@ -84,11 +84,15 @@ class SessionController extends AsyncNotifier<Account?> {
   }
 
   Future<void> logout() async {
+    final accountId = state.value?.id;
     await ref.read(authRepositoryProvider).logout();
     final passesCache = ref.read(passesCacheProvider);
     state = const AsyncData(null);
     // Las entradas guardadas para usar sin conexión (SCRUM-91) no se quedan en el teléfono. Sin esperar:
-    // cerrar sesión no depende del almacenamiento del sistema, y si falla, igual quedan atadas a la cuenta.
-    unawaited(Future.sync(passesCache.clear).catchError((Object _) {}));
+    // cerrar sesión no depende del almacenamiento del sistema. Cada cuenta tiene su clave, así que un
+    // borrado tardío no toca la copia de quien entra después.
+    if (accountId != null) {
+      unawaited(Future.sync(() => passesCache.clear(accountId)).catchError((Object _) {}));
+    }
   }
 }

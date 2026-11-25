@@ -6,6 +6,8 @@ import 'package:festa/features/attendance/domain/attendance_status.dart';
 import 'package:festa/features/events/application/events_providers.dart';
 import 'package:festa/features/events/domain/event.dart';
 import 'package:festa/features/events/presentation/event_detail_screen.dart';
+import 'package:festa/features/passes/application/passes_providers.dart';
+import 'package:festa/features/passes/data/passes_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,6 +17,18 @@ import 'package:mocktail/mocktail.dart';
 import '../../support/fakes.dart';
 
 class _MockAttendanceApi extends Mock implements AttendanceApi {}
+
+class _MockPassesApi extends Mock implements PassesApi {}
+
+/// Cuenta los refrescos de la copia de «Mis entradas» (SCRUM-91) sin pedir nada.
+class _CountingSync extends PassesSync {
+  _CountingSync() : super(api: _MockPassesApi(), cache: InMemoryPassesCache(), accountId: () => null);
+
+  int calls = 0;
+
+  @override
+  Future<void> refresh() async => calls++;
+}
 
 /// Evento gratis que todavía no termina, con cupo para 30.
 Event _openEvent({bool ticketed = false, int? capacity = 30, String status = 'published'}) {
@@ -30,8 +44,12 @@ Event _openEvent({bool ticketed = false, int? capacity = 30, String status = 'pu
 
 void main() {
   late _MockAttendanceApi api;
+  late _CountingSync passesSync;
 
-  setUp(() => api = _MockAttendanceApi());
+  setUp(() {
+    api = _MockAttendanceApi();
+    passesSync = _CountingSync();
+  });
 
   Future<void> pumpDetail(WidgetTester tester, Event event) async {
     final router = GoRouter(
@@ -53,6 +71,7 @@ void main() {
         overrides: [
           eventDetailProvider.overrideWith((ref, id) async => event),
           attendanceApiProvider.overrideWithValue(api),
+          passesSyncProvider.overrideWithValue(passesSync),
         ],
         child: MaterialApp.router(routerConfig: router),
       ),
@@ -75,6 +94,8 @@ void main() {
     expect(find.byKey(const Key('attendance.going')), findsOneWidget);
     expect(find.text('4 de 30 cupos ocupados'), findsOneWidget);
     expect(find.text('¡Listo! Quedó en tus planes.'), findsOneWidget);
+    // La entrada nueva queda guardada para mostrar el QR sin señal, sin abrir «Mis entradas».
+    expect(passesSync.calls, 1);
   });
 
   testWidgets('cancelar pide confirmación y libera el cupo', (tester) async {

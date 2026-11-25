@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../app/design/design.dart';
 import '../../../app/routes.dart';
 import '../../../core/network/api_exception.dart';
+import '../../passes/application/passes_providers.dart';
+import '../../passes/presentation/my_passes_screen.dart';
 import '../application/session_controller.dart';
 import 'auth_validators.dart';
 import 'widgets/auth_scaffold.dart';
@@ -122,6 +124,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 onPressed: _submitting ? null : () => context.go(Routes.register),
                 child: const Text('¿No tienes cuenta? Regístrate'),
               ),
+              // SCRUM-91: si la app abrió sin señal no pudo recuperar la sesión; el QR guardado sigue a mano.
+              if (ref.watch(savedPassesOnDeviceProvider).value case final saved?) ...[
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  key: const Key('login.savedPasses'),
+                  onPressed: () =>
+                      Navigator.of(context)
+                          .push(MaterialPageRoute<void>(builder: (_) => SavedPassesScreen(saved: saved))),
+                  icon: const Icon(Icons.qr_code_2),
+                  label: const Text('Ver mis entradas guardadas'),
+                ),
+              ],
             ],
           ),
         ),

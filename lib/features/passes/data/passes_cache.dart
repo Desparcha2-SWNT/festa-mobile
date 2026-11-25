@@ -17,10 +17,19 @@ class CachedPasses {
 
 /// Copia local de «Mis entradas» para la puerta del evento, donde muchas veces no hay señal.
 abstract interface class PassesCache {
-  /// Las entradas guardadas de [accountId], o `null` si no hay o son de otra cuenta.
+  /// Las entradas guardadas de [accountId], o `null` si no hay.
   Future<CachedPasses?> read(String accountId);
+
+  /// Las entradas de la última cuenta que guardó en este teléfono. Sirve en el login cuando la app se abre
+  /// sin señal y no puede recuperar la sesión: al cerrar sesión la copia se borra, así que si sigue aquí es
+  /// de quien usaba el teléfono.
+  Future<CachedPasses?> readLast();
+
   Future<void> save(String accountId, List<Pass> passes, DateTime savedAt);
-  Future<void> clear();
+
+  /// Borra la copia de [accountId]. Cada cuenta tiene su propia clave: un borrado tardío al cerrar sesión no
+  /// toca la copia de la cuenta que entra después.
+  Future<void> clear(String accountId);
 }
 
 final passesCacheProvider = Provider<PassesCache>((ref) => const SecurePassesCache());
@@ -30,23 +39,34 @@ final passesCacheProvider = Provider<PassesCache>((ref) => const SecurePassesCac
 class SecurePassesCache implements PassesCache {
   const SecurePassesCache([this._storage = const FlutterSecureStorage()]);
 
-  static const _key = 'festa.passes_cache.v1';
+  static const _prefix = 'festa.passes_cache.v1';
+  static const _lastKey = '$_prefix.last';
+
+  static String keyFor(String accountId) => '$_prefix.account.$accountId';
 
   final FlutterSecureStorage _storage;
 
   @override
   Future<CachedPasses?> read(String accountId) async {
-    final raw = await _storage.read(key: _key);
+    final raw = await _storage.read(key: keyFor(accountId));
     final cached = raw == null ? null : decode(raw);
     return cached?.accountId == accountId ? cached : null;
   }
 
   @override
-  Future<void> save(String accountId, List<Pass> passes, DateTime savedAt) =>
-      _storage.write(key: _key, value: encode(accountId, passes, savedAt));
+  Future<CachedPasses?> readLast() async {
+    final accountId = await _storage.read(key: _lastKey);
+    return accountId == null ? null : read(accountId);
+  }
 
   @override
-  Future<void> clear() => _storage.delete(key: _key);
+  Future<void> save(String accountId, List<Pass> passes, DateTime savedAt) async {
+    await _storage.write(key: keyFor(accountId), value: encode(accountId, passes, savedAt));
+    await _storage.write(key: _lastKey, value: accountId);
+  }
+
+  @override
+  Future<void> clear(String accountId) => _storage.delete(key: keyFor(accountId));
 
   static String encode(String accountId, List<Pass> passes, DateTime savedAt) => jsonEncode({
     'accountId': accountId,

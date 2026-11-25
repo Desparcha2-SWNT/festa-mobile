@@ -149,8 +149,7 @@ void main() {
 
     await pump(tester);
 
-    expect(cache.cached?.accountId, testAccount.id);
-    expect([for (final pass in cache.cached!.passes) pass.passId], ['p1']);
+    expect([for (final pass in cache.copies[testAccount.id]!.passes) pass.passId], ['p1']);
     expect(find.byKey(const Key('passes.offline')), findsNothing);
   });
 

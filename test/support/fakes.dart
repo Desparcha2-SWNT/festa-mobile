@@ -162,27 +162,34 @@ class InMemoryExploreCache implements ExploreCache {
       cached = CachedEvents(events: events, savedAt: savedAt);
 }
 
-/// Copia de «Mis entradas» en memoria (SCRUM-91), con la misma regla de cuenta que la real.
+/// Copia de «Mis entradas» en memoria (SCRUM-91), una por cuenta como la real.
 class InMemoryPassesCache implements PassesCache {
-  CachedPasses? cached;
-  int clears = 0;
+  final copies = <String, CachedPasses>{};
+  final cleared = <String>[];
+  String? last;
 
   @override
-  Future<CachedPasses?> read(String accountId) async => cached?.accountId == accountId ? cached : null;
+  Future<CachedPasses?> read(String accountId) async => copies[accountId];
 
   @override
-  Future<void> save(String accountId, List<Pass> passes, DateTime savedAt) async => cached = CachedPasses(
-    accountId: accountId,
-    passes: [
-      for (final pass in passes)
-        if (pass.usable) pass,
-    ],
-    savedAt: savedAt,
-  );
+  Future<CachedPasses?> readLast() async => last == null ? null : copies[last];
 
   @override
-  Future<void> clear() async {
-    clears++;
-    cached = null;
+  Future<void> save(String accountId, List<Pass> passes, DateTime savedAt) async {
+    copies[accountId] = CachedPasses(
+      accountId: accountId,
+      passes: [
+        for (final pass in passes)
+          if (pass.usable) pass,
+      ],
+      savedAt: savedAt,
+    );
+    last = accountId;
+  }
+
+  @override
+  Future<void> clear(String accountId) async {
+    cleared.add(accountId);
+    copies.remove(accountId);
   }
 }

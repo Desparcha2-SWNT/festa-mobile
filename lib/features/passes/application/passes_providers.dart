@@ -47,6 +47,60 @@ final myPassesProvider = FutureProvider.autoDispose<MyPasses>((ref) async {
   }
 }, retry: retryPasses);
 
+/// Refresca la copia del teléfono sin abrir «Mis entradas»: al abrir la app con sesión y después de
+/// confirmar o cancelar una asistencia. Así quien nunca entra a esa pantalla igual tiene su QR sin señal.
+class PassesSync {
+  PassesSync({required PassesApi api, required PassesCache cache, required String? Function() accountId})
+    : _api = api,
+      _cache = cache,
+      _accountId = accountId;
+
+  final PassesApi _api;
+  final PassesCache _cache;
+  final String? Function() _accountId;
+
+  /// Nunca falla: sin red se conserva la copia que había.
+  Future<void> refresh() async {
+    final accountId = _accountId();
+    if (accountId == null) return;
+    try {
+      final passes = await _api.mine();
+      // Si la sesión cambió mientras llegaba la respuesta, no se guarda a nombre de otra cuenta.
+      if (_accountId() != accountId) return;
+      await _cache.save(accountId, passes, DateTime.now());
+    } on Object {
+      // Se intenta de nuevo en el próximo refresco.
+    }
+  }
+}
+
+final passesSyncProvider = Provider<PassesSync>(
+  (ref) => PassesSync(
+    api: ref.watch(passesApiProvider),
+    cache: ref.watch(passesCacheProvider),
+    accountId: () => ref.read(sessionControllerProvider).value?.id,
+  ),
+);
+
+/// Refresca la copia una vez por cuenta que entra. Lo escucha la barra inferior (`AppShell`), que solo
+/// se muestra con sesión.
+final passesAutoSyncProvider = FutureProvider<void>((ref) async {
+  final accountId = ref.watch(sessionControllerProvider.select((session) => session.value?.id));
+  if (accountId == null) return;
+  await ref.read(passesSyncProvider).refresh();
+});
+
+/// Entradas guardadas en el teléfono, para el login cuando la app abre sin señal. `null` si no hay ninguna
+/// que se pueda mostrar.
+final savedPassesOnDeviceProvider = FutureProvider.autoDispose<CachedPasses?>((ref) async {
+  try {
+    final cached = await ref.watch(passesCacheProvider).readLast();
+    return cached != null && cached.passes.any((pass) => pass.usable) ? cached : null;
+  } on Object {
+    return null;
+  }
+});
+
 /// Sin respuesta del servidor (red caída o tiempo agotado) o con un error del servidor.
 bool _unreachable(ApiException e) => e.statusCode == null || e.statusCode! >= 500;
 
