@@ -64,8 +64,8 @@ class _PassTile extends StatelessWidget {
         label,
         style: TextStyle(color: color, fontWeight: FontWeight.w600),
       ),
-      enabled: pass.usable,
-      onTap: pass.usable
+      enabled: pass.usable || pass.status == PassStatus.used,
+      onTap: pass.usable || pass.status == PassStatus.used
           ? () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PassQrScreen(pass: pass)))
           : null,
     );
@@ -73,6 +73,7 @@ class _PassTile extends StatelessWidget {
 }
 
 /// El QR de una entrada, grande y sobre fondo blanco para que el escáner lo lea con cualquier tema.
+/// Un pase usado no lleva QR (booking no lo manda): se muestra el aviso en su lugar.
 class PassQrScreen extends StatelessWidget {
   const PassQrScreen({required this.pass, super.key});
 
@@ -82,6 +83,8 @@ class PassQrScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final starts = pass.eventStartsAt;
+    final ends = pass.eventEndsAt;
+    final qr = pass.qr;
     return Scaffold(
       appBar: AppBar(title: const Text('Tu entrada')),
       body: LayoutBuilder(
@@ -93,30 +96,42 @@ class PassQrScreen extends StatelessWidget {
               Text(pass.eventTitle, style: text.titleLarge, textAlign: TextAlign.center),
               if (starts != null) ...[
                 const SizedBox(height: FestaSpace.xxs),
-                Text(formatPlanDate(starts), textAlign: TextAlign.center, style: text.bodyMedium),
+                Text(
+                  ends == null ? formatPlanDate(starts) : '${formatPlanDate(starts)} – ${formatPlanTime(ends)}',
+                  textAlign: TextAlign.center,
+                  style: text.bodyMedium,
+                ),
               ],
               const SizedBox(height: FestaSpace.xl),
-              Center(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(color: FestaColors.bg, borderRadius: FestaRadius.mdAll),
-                  child: Padding(
-                    padding: const EdgeInsets.all(FestaSpace.md),
-                    child: QrImageView(
-                      key: const Key('passes.qr'),
-                      data: pass.qr!,
-                      size: size,
-                      backgroundColor: FestaColors.bg,
-                      semanticsLabel: 'Código QR de tu entrada',
+              if (qr != null) ...[
+                Center(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(color: FestaColors.bg, borderRadius: FestaRadius.mdAll),
+                    child: Padding(
+                      padding: const EdgeInsets.all(FestaSpace.md),
+                      child: QrImageView(
+                        key: const Key('passes.qr'),
+                        data: qr,
+                        size: size,
+                        backgroundColor: FestaColors.bg,
+                        semanticsLabel: 'Código QR de tu entrada',
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: FestaSpace.xl),
-              Text(
-                'Muéstralo en la entrada. Sirve una sola vez.',
-                textAlign: TextAlign.center,
-                style: text.bodyMedium?.copyWith(color: FestaColors.textSecondary),
-              ),
+                const SizedBox(height: FestaSpace.xl),
+                Text(
+                  'Muéstralo en la entrada. Sirve una sola vez.',
+                  textAlign: TextAlign.center,
+                  style: text.bodyMedium?.copyWith(color: FestaColors.textSecondary),
+                ),
+              ] else
+                Text(
+                  'Este boleto ya se escaneó. Un código solo sirve una vez.',
+                  key: const Key('passes.used'),
+                  textAlign: TextAlign.center,
+                  style: text.bodyLarge,
+                ),
             ],
           );
         },
@@ -124,7 +139,6 @@ class PassQrScreen extends StatelessWidget {
     );
   }
 }
-
 class _EmptyView extends StatelessWidget {
   const _EmptyView();
 

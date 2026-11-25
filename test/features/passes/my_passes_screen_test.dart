@@ -93,6 +93,26 @@ void main() {
     expect(find.byKey(const Key('passes.qr')), findsNothing);
   });
 
+  testWidgets('una entrada usada abre el aviso y no muestra el QR', (tester) async {
+    when(() => api.mine()).thenAnswer((_) async => [_pass('p2', status: PassStatus.used)]);
+
+    await pump(tester);
+    await tester.tap(find.byKey(const Key('passes.item.p2')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('passes.used')), findsOneWidget);
+    expect(find.byKey(const Key('passes.qr')), findsNothing);
+  });
+
+  testWidgets('muestra el horario de inicio y de fin del evento', (tester) async {
+    when(() => api.mine()).thenAnswer((_) async => [_pass('p1')]);
+
+    await pump(tester);
+    await tester.tap(find.byKey(const Key('passes.item.p1')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('3:05 p. m. – 6:05 p. m.'), findsOneWidget);
+  });
   testWidgets('sin entradas lo dice', (tester) async {
     when(() => api.mine()).thenAnswer((_) async => []);
 
