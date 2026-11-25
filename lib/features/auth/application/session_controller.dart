@@ -47,7 +47,7 @@ class SessionController extends AsyncNotifier<Account?> {
           accountType: accountType,
           acceptedPrivacyPolicy: acceptedPrivacyPolicy,
         );
-    state = AsyncData(account);
+    _signedIn(account);
   }
 
   Account? _unpublishedMerchant;
@@ -74,25 +74,36 @@ class SessionController extends AsyncNotifier<Account?> {
     await ref.read(merchantApiProvider).submit(draft);
     final account = _unpublishedMerchant!;
     _unpublishedMerchant = null;
-    state = AsyncData(account);
+    _signedIn(account);
   }
 
   /// Lanza [ApiException] si las credenciales no son válidas; la pantalla muestra el mensaje.
   Future<void> login({required String email, required String password}) async {
     final account = await ref.read(authRepositoryProvider).login(email: email, password: password);
-    state = AsyncData(account);
+    _signedIn(account);
   }
 
   Future<void> logout() async {
     final accountId = state.value?.id;
     await ref.read(authRepositoryProvider).logout();
-    final passesCache = ref.read(passesCacheProvider);
-    state = const AsyncData(null);
-    // Las entradas guardadas para usar sin conexión (SCRUM-91) no se quedan en el teléfono. Sin esperar:
-    // cerrar sesión no depende del almacenamiento del sistema. Cada cuenta tiene su clave, así que un
-    // borrado tardío no toca la copia de quien entra después.
+    // Las entradas guardadas para usar sin conexión (SCRUM-91) se borran ANTES de publicar la sesión nula: si no,
+    // el login podría ofrecer «Ver mis entradas guardadas» con los QR de quien acaba de salir. Con un tope de
+    // tiempo para que un almacenamiento del sistema que no responde no deje la app sin cerrar sesión.
     if (accountId != null) {
-      unawaited(Future.sync(() => passesCache.clear(accountId)).catchError((Object _) {}));
+      try {
+        await ref.read(passesCacheProvider).clear(accountId).timeout(_clearTimeout);
+      } on Object {
+        // Si no se pudo borrar, la copia sigue atada a la cuenta y se borra cuando entre otra.
+      }
     }
+    state = const AsyncData(null);
+  }
+
+  static const _clearTimeout = Duration(seconds: 3);
+
+  /// Publica la cuenta que acaba de entrar y borra las copias de «Mis entradas» de otras cuentas (SCRUM-91).
+  void _signedIn(Account account) {
+    state = AsyncData(account);
+    unawaited(Future.sync(() => ref.read(passesCacheProvider).clearOthers(account.id)).catchError((Object _) {}));
   }
 }

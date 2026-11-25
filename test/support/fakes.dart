@@ -168,6 +168,9 @@ class InMemoryPassesCache implements PassesCache {
   final cleared = <String>[];
   String? last;
 
+  /// Simula un teléfono que no deja guardar.
+  bool failSaves = false;
+
   @override
   Future<CachedPasses?> read(String accountId) async => copies[accountId];
 
@@ -176,6 +179,7 @@ class InMemoryPassesCache implements PassesCache {
 
   @override
   Future<void> save(String accountId, List<Pass> passes, DateTime savedAt) async {
+    if (failSaves) throw StateError('almacenamiento no disponible');
     copies[accountId] = CachedPasses(
       accountId: accountId,
       passes: [
@@ -191,5 +195,12 @@ class InMemoryPassesCache implements PassesCache {
   Future<void> clear(String accountId) async {
     cleared.add(accountId);
     copies.remove(accountId);
+    if (last == accountId) last = null;
+  }
+
+  @override
+  Future<void> clearOthers(String accountId) async {
+    copies.removeWhere((id, _) => id != accountId);
+    if (last != accountId) last = null;
   }
 }

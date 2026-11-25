@@ -22,6 +22,8 @@ class MyPassesScreen extends ConsumerWidget {
       AsyncData(:final value) => _PassesBody(
         passes: value.passes,
         offlineSince: value.offlineSince,
+        notice: value.serverError ? _CopyNotice.serverError : _CopyNotice.offline,
+        savedOnDevice: value.savedOnDevice,
         onRefresh: () => ref.refresh(myPassesProvider.future),
       ),
       AsyncError(:final error) => _ErrorView(
@@ -43,16 +45,29 @@ class SavedPassesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Mis entradas guardadas')),
-    body: _PassesBody(passes: saved.passes, offlineSince: saved.savedAt),
+    body: _PassesBody(
+      passes: saved.passes,
+      offlineSince: saved.savedAt,
+      notice: _CopyNotice.saved,
+      savedOnDevice: true,
+    ),
   );
 }
 
 /// La lista de entradas, con el aviso de sin conexión cuando viene de la copia del teléfono.
 class _PassesBody extends StatelessWidget {
-  const _PassesBody({required this.passes, this.offlineSince, this.onRefresh});
+  const _PassesBody({
+    required this.passes,
+    this.offlineSince,
+    this.notice = _CopyNotice.offline,
+    this.savedOnDevice = false,
+    this.onRefresh,
+  });
 
   final List<Pass> passes;
   final DateTime? offlineSince;
+  final _CopyNotice notice;
+  final bool savedOnDevice;
 
   /// `null` donde no hay sesión para pedir la lista (desde el login).
   final Future<void> Function()? onRefresh;
@@ -67,12 +82,12 @@ class _PassesBody extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: FestaSpace.sm),
             itemCount: passes.length,
             separatorBuilder: (_, _) => const Divider(height: 1),
-            itemBuilder: (context, i) => _PassTile(pass: passes[i]),
+            itemBuilder: (context, i) => _PassTile(pass: passes[i], savedOnDevice: savedOnDevice),
           );
     final refresh = onRefresh;
     return Column(
       children: [
-        if (offlineSince case final savedAt?) _OfflineBanner(savedAt: savedAt),
+        if (offlineSince case final savedAt?) _OfflineBanner(savedAt: savedAt, notice: notice),
         Expanded(
           child: refresh == null ? list : RefreshIndicator(onRefresh: refresh, child: list),
         ),
@@ -84,9 +99,10 @@ class _PassesBody extends StatelessWidget {
 /// SCRUM-91: sin red se muestran las entradas guardadas en el teléfono. El QR está firmado y se valida
 /// igual en la puerta; lo que puede estar desactualizado es el estado (por ejemplo, una cancelación).
 class _OfflineBanner extends StatelessWidget {
-  const _OfflineBanner({required this.savedAt});
+  const _OfflineBanner({required this.savedAt, required this.notice});
 
   final DateTime savedAt;
+  final _CopyNotice notice;
 
   @override
   Widget build(BuildContext context) {
@@ -102,7 +118,7 @@ class _OfflineBanner extends StatelessWidget {
             const SizedBox(width: FestaSpace.sm),
             Expanded(
               child: Text(
-                'Sin conexión: son tus entradas guardadas el ${formatPlanDate(savedAt)}. El QR sirve igual en la entrada.',
+                '${notice.lead}${formatPlanDate(savedAt)}. El QR sirve igual en la entrada.',
                 style: TextStyle(color: colors.onSurfaceVariant),
               ),
             ),
@@ -113,10 +129,22 @@ class _OfflineBanner extends StatelessWidget {
   }
 }
 
+/// Por qué se muestra la copia del teléfono: el aviso no debe decir «Sin conexión» si hubo red.
+enum _CopyNotice {
+  offline('Sin conexión: son tus entradas guardadas el '),
+  serverError('No pudimos actualizar tus entradas: son las guardadas el '),
+  saved('Son tus entradas guardadas el ');
+
+  const _CopyNotice(this.lead);
+
+  final String lead;
+}
+
 class _PassTile extends StatelessWidget {
-  const _PassTile({required this.pass});
+  const _PassTile({required this.pass, this.savedOnDevice = false});
 
   final Pass pass;
+  final bool savedOnDevice;
 
   @override
   Widget build(BuildContext context) {
@@ -139,7 +167,11 @@ class _PassTile extends StatelessWidget {
       ),
       enabled: pass.opens,
       onTap: pass.opens
-          ? () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PassQrScreen(pass: pass)))
+          ? () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => PassQrScreen(pass: pass, savedOnDevice: savedOnDevice),
+              ),
+            )
           : null,
     );
   }
@@ -149,9 +181,12 @@ class _PassTile extends StatelessWidget {
 /// lo lea con cualquier tema, con su estado arriba. Una entrada usada se abre sin QR (booking no lo manda)
 /// y lo dice.
 class PassQrScreen extends StatelessWidget {
-  const PassQrScreen({required this.pass, super.key});
+  const PassQrScreen({required this.pass, this.savedOnDevice = false, super.key});
 
   final Pass pass;
+
+  /// La entrada está guardada en el teléfono: solo entonces se promete que funciona sin conexión.
+  final bool savedOnDevice;
 
   @override
   Widget build(BuildContext context) {
@@ -206,7 +241,11 @@ class PassQrScreen extends StatelessWidget {
               ),
               const SizedBox(height: FestaSpace.xl),
               Text(
-                used ? 'Este boleto ya se escaneó. Un código solo sirve una vez.' : 'Un solo uso: una vez escaneado, el código queda invalidado. Funciona sin conexión: queda guardado en el celular. Sube el brillo al entrar.',
+                used
+                    ? 'Este boleto ya se escaneó. Un código solo sirve una vez.'
+                    : savedOnDevice
+                    ? 'Un solo uso: una vez escaneado, el código queda invalidado. Funciona sin conexión: queda guardado en el celular. Sube el brillo al entrar.'
+                    : 'Un solo uso: una vez escaneado, el código queda invalidado. Sube el brillo al entrar.',
                 key: Key(used ? 'passes.used' : 'passes.hint'),
                 textAlign: TextAlign.center,
                 style: text.bodyMedium?.copyWith(color: FestaColors.textSecondary),
@@ -250,7 +289,7 @@ class PassForEventScreen extends ConsumerWidget {
     final passes = ref.watch(myPassesProvider);
     if (passes case AsyncData(:final value)) {
       final pass = passForEvent(value.passes, eventId);
-      if (pass != null) return PassQrScreen(pass: pass);
+      if (pass != null) return PassQrScreen(pass: pass, savedOnDevice: value.savedOnDevice);
     }
     return Scaffold(
       appBar: AppBar(title: const Text('Mi entrada')),

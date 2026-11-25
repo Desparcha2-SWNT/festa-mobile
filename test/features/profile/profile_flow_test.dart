@@ -6,6 +6,7 @@ import 'package:festa/features/auth/application/auth_providers.dart';
 import 'package:festa/features/auth/application/session_controller.dart';
 import 'package:festa/features/location/application/location_providers.dart';
 import 'package:festa/features/location/domain/location_consent.dart';
+import 'package:festa/features/passes/data/passes_cache.dart';
 import 'package:festa/features/profile/application/profile_providers.dart';
 import 'package:festa/features/profile/domain/user_profile.dart';
 import 'package:flutter/material.dart';
@@ -45,6 +46,8 @@ void main() {
           authApiProvider.overrideWithValue(authApi),
           profileApiProvider.overrideWithValue(profileApi),
           tokenStorageProvider.overrideWithValue(storage),
+          // Cerrar sesión espera el borrado de «Mis entradas» guardadas (SCRUM-91): en pruebas va en memoria.
+          passesCacheProvider.overrideWithValue(InMemoryPassesCache()),
           // La cuenta de prueba ya decidió sobre su ubicación: estas pruebas son del perfil.
           locationConsentStoreProvider.overrideWithValue(
             InMemoryLocationConsentStore()

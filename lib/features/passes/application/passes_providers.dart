@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
@@ -11,12 +14,18 @@ final passesApiProvider = Provider<PassesApi>((ref) => PassesApi(ref.watch(authe
 
 /// «Mis entradas» y, si vienen de la copia del teléfono, cuándo se guardaron.
 class MyPasses {
-  const MyPasses(this.passes, {this.offlineSince});
+  const MyPasses(this.passes, {this.offlineSince, this.serverError = false, this.savedOnDevice = false});
 
   final List<Pass> passes;
 
   /// `null` si la lista viene de booking-service; si no, la hora de la copia guardada (SCRUM-91).
   final DateTime? offlineSince;
+
+  /// La copia se muestra porque el servidor respondió con error (5xx), no por falta de red.
+  final bool serverError;
+
+  /// Las entradas están guardadas en el teléfono: el QR se puede mostrar sin señal.
+  final bool savedOnDevice;
 
   bool get offline => offlineSince != null;
 }
@@ -29,21 +38,31 @@ class MyPasses {
 final myPassesProvider = FutureProvider.autoDispose<MyPasses>((ref) async {
   final accountId = ref.watch(sessionControllerProvider.select((session) => session.value?.id));
   final cache = ref.watch(passesCacheProvider);
+  final api = ref.watch(passesApiProvider);
   try {
-    final passes = await ref.watch(passesApiProvider).mine();
-    if (accountId != null) {
+    final passes = await api.mine();
+    var saved = false;
+    // Si la sesión cambió (o se cerró) mientras llegaba la respuesta, no se guarda: escribir después del
+    // borrado del cierre de sesión dejaría los QR de esa cuenta en el teléfono.
+    if (accountId != null && ref.mounted && ref.read(sessionControllerProvider).value?.id == accountId) {
       try {
         await cache.save(accountId, passes, DateTime.now());
+        saved = true;
       } on Object {
-        // Si el teléfono no deja guardar, la lista igual se muestra.
+        // Si el teléfono no deja guardar, la lista igual se muestra, sin prometer el uso sin conexión.
       }
     }
-    return MyPasses(passes);
+    return MyPasses(passes, savedOnDevice: saved);
   } on ApiException catch (e) {
     if (accountId == null || !_unreachable(e)) rethrow;
     final cached = await _readOrNull(cache, accountId);
     if (cached == null) rethrow;
-    return MyPasses(cached.passes, offlineSince: cached.savedAt);
+    return MyPasses(
+      cached.passes,
+      offlineSince: cached.savedAt,
+      serverError: e.statusCode != null,
+      savedOnDevice: true,
+    );
   }
 }, retry: retryPasses);
 
@@ -82,12 +101,16 @@ final passesSyncProvider = Provider<PassesSync>(
   ),
 );
 
-/// Refresca la copia una vez por cuenta que entra. Lo escucha la barra inferior (`AppShell`), que solo
-/// se muestra con sesión.
+/// Refresca la copia cuando entra una cuenta y cada vez que la app vuelve a primer plano. Lo escucha la barra
+/// inferior (`AppShell`), que solo se muestra con sesión. Volver a primer plano cubre la compra: la persona
+/// paga en Wompi, regresa a la app y su boleta queda guardada sin abrir «Mis entradas».
 final passesAutoSyncProvider = FutureProvider<void>((ref) async {
   final accountId = ref.watch(sessionControllerProvider.select((session) => session.value?.id));
   if (accountId == null) return;
-  await ref.read(passesSyncProvider).refresh();
+  final sync = ref.read(passesSyncProvider);
+  final listener = AppLifecycleListener(onResume: () => unawaited(sync.refresh()));
+  ref.onDispose(listener.dispose);
+  await sync.refresh();
 });
 
 /// Entradas guardadas en el teléfono, para el login cuando la app abre sin señal. `null` si no hay ninguna

@@ -27,9 +27,13 @@ abstract interface class PassesCache {
 
   Future<void> save(String accountId, List<Pass> passes, DateTime savedAt);
 
-  /// Borra la copia de [accountId]. Cada cuenta tiene su propia clave: un borrado tardío al cerrar sesión no
-  /// toca la copia de la cuenta que entra después.
+  /// Borra la copia de [accountId] y, si era la última que se guardó, también la referencia que usa el login.
+  /// Cada cuenta tiene su propia clave: un borrado tardío no toca la copia de la cuenta que entra después.
   Future<void> clear(String accountId);
+
+  /// Borra las copias de las demás cuentas. Se llama cuando entra una cuenta: lo que dejó la anterior no se
+  /// queda en el teléfono ni aparece en el login.
+  Future<void> clearOthers(String accountId);
 }
 
 final passesCacheProvider = Provider<PassesCache>((ref) => const SecurePassesCache());
@@ -66,7 +70,21 @@ class SecurePassesCache implements PassesCache {
   }
 
   @override
-  Future<void> clear(String accountId) => _storage.delete(key: keyFor(accountId));
+  Future<void> clear(String accountId) async {
+    await _storage.delete(key: keyFor(accountId));
+    if (await _storage.read(key: _lastKey) == accountId) await _storage.delete(key: _lastKey);
+  }
+
+  @override
+  Future<void> clearOthers(String accountId) async {
+    final mine = keyFor(accountId);
+    final keys = (await _storage.readAll()).keys;
+    for (final key in keys) {
+      if (key.startsWith('$_prefix.account.') && key != mine) await _storage.delete(key: key);
+    }
+    final last = await _storage.read(key: _lastKey);
+    if (last != null && last != accountId) await _storage.delete(key: _lastKey);
+  }
 
   static String encode(String accountId, List<Pass> passes, DateTime savedAt) => jsonEncode({
     'accountId': accountId,

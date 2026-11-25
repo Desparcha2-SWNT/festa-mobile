@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:festa/core/network/api_exception.dart';
 import 'package:festa/features/auth/application/session_controller.dart';
 import 'package:festa/features/auth/domain/account.dart';
@@ -26,6 +28,7 @@ class _MemoryStorage extends Mock implements FlutterSecureStorage {
     ).thenAnswer((i) async {
       values[i.namedArguments[#key] as String] = i.namedArguments[#value] as String;
     });
+    when(readAll).thenAnswer((_) async => Map.of(values));
     when(() => delete(key: any(named: 'key'))).thenAnswer((i) async {
       values.remove(i.namedArguments[#key] as String);
     });
@@ -61,7 +64,16 @@ Pass _pass(String id, {PassStatus status = PassStatus.valid}) => Pass(
   qr: status == PassStatus.valid ? _qr : null,
 );
 
+class _SwitchableSession extends SessionController {
+  @override
+  Future<Account?> build() async => testAccount;
+
+  void signOut() => state = const AsyncData(null);
+}
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('SecurePassesCache', () {
     late _MemoryStorage storage;
     late SecurePassesCache cache;
@@ -99,6 +111,28 @@ void main() {
       expect(await cache.read('a1'), isNull);
       expect(await cache.read('b2'), isNotNull);
       expect((await cache.readLast())?.accountId, 'b2');
+    });
+
+    test('borrar la copia de la última cuenta también quita la referencia del login', () async {
+      await cache.save('a1', [_pass('p1')], saved);
+
+      await cache.clear('a1');
+
+      expect(storage.values.keys, isNot(contains('festa.passes_cache.v1.last')));
+    });
+
+    test('al entrar una cuenta se borran las copias de las demás', () async {
+      await cache.save('a1', [_pass('p1')], saved);
+      await cache.save('b2', [_pass('p3')], saved);
+
+      await cache.clearOthers('b2');
+
+      expect(await cache.read('a1'), isNull);
+      expect(await cache.read('b2'), isNotNull);
+      expect((await cache.readLast())?.accountId, 'b2');
+
+      await cache.clearOthers('c3');
+      expect(await cache.readLast(), isNull);
     });
 
     test('tras borrar la copia de la última cuenta, readLast no devuelve nada', () async {
@@ -182,5 +216,31 @@ void main() {
     await container.read(passesAutoSyncProvider.future);
 
     expect(sync.calls, 1);
+  });
+
+  test('«Mis entradas» no guarda la copia si la sesión se cerró mientras llegaba la respuesta', () async {
+    final api = _MockPassesApi();
+    final cache = InMemoryPassesCache();
+    final response = Completer<List<Pass>>();
+    when(api.mine).thenAnswer((_) => response.future);
+    final container = ProviderContainer(
+      overrides: [
+        sessionControllerProvider.overrideWith(_SwitchableSession.new),
+        passesApiProvider.overrideWithValue(api),
+        passesCacheProvider.overrideWithValue(cache),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(sessionControllerProvider.future);
+    final subscription = container.listen(myPassesProvider, (_, _) {});
+    addTearDown(subscription.close);
+    await Future<void>.delayed(Duration.zero);
+
+    (container.read(sessionControllerProvider.notifier) as _SwitchableSession).signOut();
+    response.complete([_pass('p1')]);
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(cache.copies, isEmpty);
   });
 }

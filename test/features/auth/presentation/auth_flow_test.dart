@@ -110,6 +110,20 @@ void main() {
     expect(find.byKey(const Key('passes.qr')), findsOneWidget);
   });
 
+  testWidgets('al entrar una cuenta se borran las entradas guardadas de otra (SCRUM-91)', (tester) async {
+    when(() => api.login(email: 'ana@escuelaing.edu.co', password: 'festa123')).thenAnswer((_) async => testSession());
+    await passesCache.save('otra-cuenta', [], DateTime(2030, 11, 13));
+
+    await pumpApp(tester);
+    await tester.enterText(find.byKey(const Key('login.email')), 'ana@escuelaing.edu.co');
+    await tester.enterText(find.byKey(const Key('login.password')), 'festa123');
+    await tester.ensureVisible(find.byKey(const Key('login.submit')));
+    await tester.tap(find.byKey(const Key('login.submit')));
+    await tester.pumpAndSettle();
+
+    expect(passesCache.copies.containsKey('otra-cuenta'), isFalse);
+  });
+
   testWidgets('sin entradas guardadas el login no muestra el acceso', (tester) async {
     await pumpApp(tester);
 

@@ -260,6 +260,30 @@ void main() {
 
     expect(find.byKey(const Key('passes.offline')), findsOneWidget);
     expect(find.text('Noche de jazz'), findsOneWidget);
+    // Hubo red: el aviso no dice «Sin conexión».
+    expect(find.textContaining('No pudimos actualizar tus entradas'), findsOneWidget);
+    expect(find.textContaining('Sin conexión'), findsNothing);
+  });
+
+  testWidgets('el QR promete el uso sin conexión solo si la entrada quedó guardada', (tester) async {
+    when(() => api.mine()).thenAnswer((_) async => [_pass('p1')]);
+    cache.failSaves = true;
+
+    await pump(tester);
+    await tester.tap(find.byKey(const Key('passes.item.p1')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Funciona sin conexión'), findsNothing);
+  });
+
+  testWidgets('con la entrada guardada, el QR dice que funciona sin conexión', (tester) async {
+    when(() => api.mine()).thenAnswer((_) async => [_pass('p1')]);
+
+    await pump(tester);
+    await tester.tap(find.byKey(const Key('passes.item.p1')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Funciona sin conexión'), findsOneWidget);
   });
 
   testWidgets('sin conexión y sin copia guardada muestra el error', (tester) async {
