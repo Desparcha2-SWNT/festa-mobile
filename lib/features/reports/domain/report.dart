@@ -6,6 +6,9 @@ enum ReportTarget {
   const ReportTarget(this.api);
 
   final String api;
+
+  /// Un tipo desconocido se toma como evento: user-service solo acepta `event` y `user`.
+  static ReportTarget fromApi(String? value) => value == user.api ? user : event;
 }
 
 /// Motivo de un reporte. Los valores de la API son los del CHECK `chk_reports_reason` de user-service.
@@ -21,4 +24,6 @@ enum ReportReason {
 
   final String api;
   final String label;
+
+  static ReportReason fromApi(String? value) => values.firstWhere((r) => r.api == value, orElse: () => other);
 }
