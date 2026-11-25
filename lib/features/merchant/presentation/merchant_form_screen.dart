@@ -236,7 +236,7 @@ class _MerchantFormScreenState extends ConsumerState<MerchantFormScreen> {
     const SizedBox(height: 16),
     _InfoBox(
       _firstSubmission
-          ? 'Al enviar, el equipo de Festa revisa tu comercio a mano. Te avisamos el resultado.'
+          ? 'Al enviar, el equipo de Festa revisa tu comercio a mano. Verás el resultado en la app.'
           : 'Si cambias el nombre, la categoría o la dirección, el equipo de Festa volverá a revisar tu comercio.',
     ),
   ];
