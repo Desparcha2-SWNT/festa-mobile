@@ -122,7 +122,7 @@ class _EditFormState extends ConsumerState<_EditForm> {
             const SizedBox(height: 8),
           ],
           Text(
-            'Si cambias la fecha o el lugar, avisaremos a quienes ya confirmaron.',
+            'Si cambias la fecha o el lugar, quienes ya confirmaron verán los datos nuevos en «Mis planes».',
             style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
         ],
@@ -172,7 +172,7 @@ class _CancelDialogState extends State<_CancelDialog> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('Avisaremos a las personas que confirmaron. Esta acción no se puede deshacer.'),
+        const Text('Quienes confirmaron lo verán como cancelado en «Mis planes». Esta acción no se puede deshacer.'),
         const SizedBox(height: 16),
         TextField(
           key: const Key('cancelEvent.reason'),

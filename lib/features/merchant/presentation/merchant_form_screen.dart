@@ -111,7 +111,7 @@ class _MerchantFormScreenState extends ConsumerState<MerchantFormScreen> {
       FestaCelebration.show(
         context,
         title: verified ? 'Comercio actualizado' : '¡Solicitud enviada!',
-        message: verified ? null : 'El equipo de Festa la revisa y te avisa.',
+        message: verified ? null : 'El equipo de Festa la revisa. Verás el resultado en la app.',
       );
       context.go(verified ? Routes.myMerchant : Routes.merchantStatus);
     } on ApiException catch (e) {
@@ -236,7 +236,7 @@ class _MerchantFormScreenState extends ConsumerState<MerchantFormScreen> {
     const SizedBox(height: 16),
     _InfoBox(
       _firstSubmission
-          ? 'Al enviar, el equipo de Festa revisa tu comercio a mano. Te avisamos el resultado.'
+          ? 'Al enviar, el equipo de Festa revisa tu comercio a mano. Verás el resultado en la app.'
           : 'Si cambias el nombre, la categoría o la dirección, el equipo de Festa volverá a revisar tu comercio.',
     ),
   ];
