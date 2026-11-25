@@ -7,6 +7,7 @@ import '../features/auth/application/session_controller.dart';
 import '../features/auth/domain/account.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
+import '../features/chat/presentation/chat_screen.dart';
 import '../features/events/presentation/create_event_screen.dart';
 import '../features/events/presentation/edit_event_screen.dart';
 import '../features/events/presentation/event_detail_screen.dart';
@@ -76,6 +77,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) => EventAttendeesScreen(eventId: state.pathParameters['id']!),
       ),
       GoRoute(path: Routes.plans, builder: (_, _) => const MyPlansScreen()),
+      GoRoute(path: Routes.chat, builder: (_, _) => const ChatScreen()),
       StatefulShellRoute.indexedStack(
         builder: (_, _, navigationShell) => AppShell(navigationShell: navigationShell),
         branches: [

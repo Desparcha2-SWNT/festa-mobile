@@ -6,6 +6,7 @@ import '../../../app/routes.dart';
 import '../../events/application/events_providers.dart';
 import '../../events/domain/event.dart';
 import '../../events/presentation/event_category_color.dart';
+import '../../events/presentation/event_filters_sheet.dart';
 import '../../events/presentation/widgets/event_preview_card.dart';
 import '../../location/application/user_location_provider.dart';
 import '../../location/presentation/widgets/location_fallback_banner.dart';
@@ -92,6 +93,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final nearby = ref.watch(exploreEventsProvider);
     final events = nearby.value?.events ?? const <Event>[];
     final offlineSince = nearby.value?.offlineSince;
+    final filters = ref.watch(eventFiltersProvider);
     final selected = ref.watch(selectedEventProvider);
     final buildMapView = ref.watch(mapViewBuilderProvider);
 
@@ -129,12 +131,32 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   const Spacer(),
                   Align(
                     alignment: Alignment.centerRight,
-                    child: FloatingActionButton.small(
-                      key: const Key('map.recenter'),
-                      tooltip: 'Centrar en mi ubicación',
-                      backgroundColor: Theme.of(context).colorScheme.surface,
-                      onPressed: _recenter,
-                      child: const Icon(Icons.near_me_outlined),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // SCRUM-79 y 81: los filtros cambian la búsqueda; el distintivo cuenta los activos.
+                        Badge(
+                          isLabelVisible: filters.isActive,
+                          label: Text('${filters.activeCount}'),
+                          child: FloatingActionButton.small(
+                            heroTag: 'map.filters',
+                            key: const Key('map.filters'),
+                            tooltip: 'Filtrar eventos',
+                            backgroundColor: Theme.of(context).colorScheme.surface,
+                            onPressed: () => showEventFiltersSheet(context),
+                            child: const Icon(Icons.tune),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        FloatingActionButton.small(
+                          heroTag: 'map.recenter',
+                          key: const Key('map.recenter'),
+                          tooltip: 'Centrar en mi ubicación',
+                          backgroundColor: Theme.of(context).colorScheme.surface,
+                          onPressed: _recenter,
+                          child: const Icon(Icons.near_me_outlined),
+                        ),
+                      ],
                     ),
                   ),
                   if (selected != null) ...[
