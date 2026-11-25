@@ -10,10 +10,12 @@ import '../application/events_providers.dart';
 import '../domain/event.dart';
 import 'event_category_color.dart';
 import 'event_formatters.dart';
+import 'event_share.dart';
 
 /// SCRUM-75: detalle de un evento. Diseño: Figma «9 · Detalle del evento».
 ///
 /// Abajo, «Confirmo que voy» y los cupos ocupados (SCRUM-70) para los eventos gratis.
+/// Arriba, el botón para compartir el evento (SCRUM-107, RF13).
 class EventDetailScreen extends ConsumerWidget {
   const EventDetailScreen({super.key, required this.eventId});
 
@@ -23,7 +25,14 @@ class EventDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final detail = ref.watch(eventDetailProvider(eventId));
     return Scaffold(
-      appBar: AppBar(title: const Text('Detalle')),
+      appBar: AppBar(
+        title: const Text('Detalle'),
+        actions: [
+          // Un evento cancelado no se comparte: invitaría a un plan que ya no existe.
+          if (detail case AsyncData(:final value) when value.status != EventStatus.cancelled)
+            _ShareButton(event: value),
+        ],
+      ),
       body: switch (detail) {
         AsyncData(:final value) => _EventDetail(event: value),
         AsyncError(:final error) => _LoadError(
@@ -118,6 +127,24 @@ class _EventDetail extends ConsumerWidget {
       ],
     );
   }
+}
+
+class _ShareButton extends ConsumerWidget {
+  const _ShareButton({required this.event});
+
+  final Event event;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => IconButton(
+    key: const Key('eventDetail.share'),
+    tooltip: 'Compartir',
+    icon: const Icon(Icons.share_outlined),
+    onPressed: () {
+      final box = context.findRenderObject() as RenderBox?;
+      final origin = box == null ? null : box.localToGlobal(Offset.zero) & box.size;
+      ref.read(eventSharerProvider).share(event, origin: origin);
+    },
+  );
 }
 
 class _CancelledBanner extends StatelessWidget {
