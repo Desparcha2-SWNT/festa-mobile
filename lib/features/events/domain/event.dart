@@ -42,6 +42,7 @@ class Event {
     required this.ticketed,
     required this.priceCents,
     this.capacity,
+    this.maxTicketsPerOrder,
     this.coverImageUrl,
     this.status = EventStatus.published,
   });
@@ -65,6 +66,7 @@ class Event {
       ticketed: json['ticketed'] as bool? ?? false,
       priceCents: json['priceCents'] as int? ?? 0,
       capacity: json['capacity'] as int?,
+      maxTicketsPerOrder: json['maxTicketsPerOrder'] as int?,
       coverImageUrl: json['coverImageUrl'] as String?,
       status: EventStatus.fromApi(json['status'] as String?),
     );
@@ -92,6 +94,7 @@ class Event {
       ticketed: json['ticketed'] as bool? ?? false,
       priceCents: json['priceCents'] as int? ?? 0,
       capacity: json['capacity'] as int?,
+      maxTicketsPerOrder: json['maxTicketsPerOrder'] as int?,
       coverImageUrl: json['coverImageUrl'] as String?,
     );
   }
@@ -109,6 +112,7 @@ class Event {
     'ticketed': ticketed,
     'priceCents': priceCents,
     'capacity': capacity,
+    'maxTicketsPerOrder': maxTicketsPerOrder,
     'coverImageUrl': coverImageUrl,
   };
 
@@ -129,6 +133,9 @@ class Event {
   final bool ticketed;
   final int priceCents;
   final int? capacity;
+
+  /// Máximo de boletas por orden que fija el organizador (event-service); null si no lo informa.
+  final int? maxTicketsPerOrder;
   final String? coverImageUrl;
   final EventStatus status;
 
