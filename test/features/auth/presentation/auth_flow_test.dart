@@ -72,7 +72,9 @@ void main() {
     expect(find.text('Hola, Ana'), findsOneWidget);
   });
 
-  testWidgets('una cuenta del equipo Festa ve la entrada a «Equipo Festa» en el inicio (SCRUM-61)', (tester) async {
+  testWidgets('una cuenta del equipo Festa ve la entrada a «Revisión de comercios» en el inicio (SCRUM-61)', (
+    tester,
+  ) async {
     storage.refreshToken = 'refresh-0';
     const admin = Account(id: 'a1', email: 'equipo@escuelaing.edu.co', displayName: 'Ana', role: Role.admin);
     when(() => api.refresh('refresh-0')).thenAnswer((_) async => testSession('1', admin));

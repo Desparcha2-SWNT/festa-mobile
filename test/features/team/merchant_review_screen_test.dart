@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:festa/core/network/api_exception.dart';
 import 'package:festa/features/merchant/domain/merchant_profile.dart';
 import 'package:festa/features/team/application/team_providers.dart';
@@ -146,12 +148,14 @@ void main() {
     expect(find.text('Café de la Escuela fue rechazado. Verá el motivo para corregir.'), findsOneWidget);
   });
 
-  testWidgets('si otra persona del equipo ya lo revisó, avisa y la lista se actualiza', (tester) async {
+  testWidgets('si otra persona del equipo ya lo revisó, vuelve a la lista con el aviso y la lista se actualiza', (
+    tester,
+  ) async {
     var calls = 0;
     when(() => api.pending()).thenAnswer((_) async => calls++ == 0 ? [_merchant('m1', 'Café de la Escuela')] : []);
-    when(() => api.approve('m1')).thenThrow(
-      const ApiException(code: 'VALIDATION_ERROR', message: 'El comercio ya no está pendiente.', statusCode: 400),
-    );
+    when(
+      () => api.approve('m1'),
+    ).thenThrow(const ApiException(code: 'BAD_REQUEST', message: 'El comercio ya no está pendiente.', statusCode: 400));
 
     await pump(tester);
     await openRequest(tester, 'm1');
@@ -160,10 +164,65 @@ void main() {
     await tester.tap(find.byKey(const Key('team.approve.confirm')));
     await tester.pumpAndSettle();
 
+    expect(find.text('Revisión de comercios'), findsOneWidget);
     expect(find.text('El comercio ya no está pendiente.'), findsOneWidget);
-    await tester.pageBack();
-    await tester.pumpAndSettle();
     expect(find.byKey(const Key('team.merchants.empty')), findsOneWidget);
+  });
+
+  testWidgets('mientras se envía la decisión no se puede salir de la solicitud', (tester) async {
+    var calls = 0;
+    final response = Completer<void>();
+    when(() => api.pending()).thenAnswer((_) async => calls++ == 0 ? [_merchant('m1', 'Café de la Escuela')] : []);
+    when(() => api.approve('m1')).thenAnswer((_) => response.future);
+
+    await pump(tester);
+    await openRequest(tester, 'm1');
+    await tester.tap(find.byKey(const Key('team.approve')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('team.approve.confirm')));
+    await tester.pump();
+
+    // Atrás (botón del sistema o de la barra) no cierra la pantalla mientras la petición sigue en curso.
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('Solicitud'), findsOneWidget);
+
+    response.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('Café de la Escuela quedó verificado.'), findsOneWidget);
+    expect(find.byKey(const Key('team.merchants.empty')), findsOneWidget);
+  });
+
+  testWidgets('el motivo cuenta como user-service: con emojis de más lo dice y no deja rechazar', (tester) async {
+    when(() => api.pending()).thenAnswer((_) async => [_merchant('m1', 'Café de la Escuela')]);
+
+    await pump(tester);
+    await openRequest(tester, 'm1');
+    await tester.tap(find.byKey(const Key('team.reject')));
+    await tester.pumpAndSettle();
+
+    // 300 caracteres visibles, pero cada emoji vale 2 en UTF-16: 600 para user-service.
+    await tester.enterText(find.byKey(const Key('team.reject.reason')), '🙂' * 300);
+    await tester.pump();
+
+    expect(find.text('600/500'), findsOneWidget);
+    expect(find.textContaining('pasa de 500 caracteres'), findsOneWidget);
+    expect(tester.widget<FilledButton>(find.byKey(const Key('team.reject.confirm'))).onPressed, isNull);
+  });
+
+  testWidgets('deslizar para refrescar sin red deja el error en pantalla, sin excepciones sueltas', (tester) async {
+    var calls = 0;
+    when(() => api.pending()).thenAnswer((_) async {
+      if (calls++ == 0) return [_merchant('m1', 'Café de la Escuela')];
+      throw const ApiException(code: ApiException.networkError, message: 'Sin conexión.');
+    });
+
+    await pump(tester);
+    await tester.fling(find.byKey(const Key('team.merchants.list')), const Offset(0, 400), 1000);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Sin conexión.'), findsOneWidget);
   });
 
   testWidgets('sin red avisa y deja la solicitud abierta para reintentar', (tester) async {
@@ -218,6 +277,7 @@ void main() {
       expect(submittedShort(DateTime(2026, 11, 24, 23), _now), 'ayer');
       expect(submittedShort(DateTime(2026, 11, 22, 9), _now), 'hace 3 días');
       expect(submittedShort(DateTime(2026, 11, 14, 9), _now), 'el 14 nov');
+      expect(submittedShort(DateTime(2025, 12, 30, 9), _now), 'el 30 dic 2025');
     });
 
     test('versión larga de la solicitud (Figma 29)', () {

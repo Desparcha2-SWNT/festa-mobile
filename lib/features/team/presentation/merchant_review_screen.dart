@@ -49,7 +49,8 @@ class MerchantReviewScreen extends ConsumerWidget {
           Expanded(
             child: switch (pending) {
               AsyncData(:final value) => RefreshIndicator(
-                onRefresh: () => ref.refresh(pendingMerchantsProvider.future),
+                // El error ya se muestra con el estado `AsyncError`: el future del refresco no debe quedar sin manejar.
+                onRefresh: () => ref.refresh(pendingMerchantsProvider.future).then((_) {}, onError: (Object _) {}),
                 child: value.isEmpty
                     ? ListView(
                         physics: const AlwaysScrollableScrollPhysics(),

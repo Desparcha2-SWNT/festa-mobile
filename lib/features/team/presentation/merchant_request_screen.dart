@@ -60,21 +60,37 @@ class _MerchantRequestScreenState extends ConsumerState<MerchantRequestScreen> {
   }
 
   Future<void> _send(Future<void> Function(TeamMerchantsApi api) action, String done) async {
+    // Todo lo que se usa después del `await` se toma antes: el contenedor de Riverpod sigue sirviendo para
+    // refrescar la lista aunque esta pantalla ya no esté. Mientras se envía, el botón atrás queda bloqueado
+    // (PopScope), así la decisión no queda a medias.
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+    final container = ProviderScope.containerOf(context, listen: false);
+    final api = ref.read(teamMerchantsApiProvider);
     setState(() => _sending = true);
     try {
-      await action(ref.read(teamMerchantsApiProvider));
-      ref.invalidate(pendingMerchantsProvider);
-      navigator.pop(done);
+      await action(api);
+      container.invalidate(pendingMerchantsProvider);
+      if (mounted) navigator.pop(done);
     } on ApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.fieldErrors.values.firstOrNull ?? e.message)));
-      // Con respuesta del servidor (por ejemplo, otra persona del equipo ya lo revisó) la lista cambió.
+      final message = e.fieldErrors.values.firstOrNull ?? e.message;
+      // Con respuesta del servidor la lista pudo cambiar (por ejemplo, otra persona del equipo ya la revisó).
       // Sin red se deja todo igual para reintentar.
-      if (e.statusCode != null) ref.invalidate(pendingMerchantsProvider);
-      if (mounted) setState(() => _sending = false);
+      if (e.statusCode != null) container.invalidate(pendingMerchantsProvider);
+      if (!mounted) return;
+      if (_alreadyResolved(e)) {
+        // Ya no hay nada que decidir aquí: se vuelve a la lista con el mensaje del servidor.
+        navigator.pop(message);
+        return;
+      }
+      messenger.showSnackBar(SnackBar(content: Text(message)));
+      setState(() => _sending = false);
     }
   }
+
+  /// La solicitud ya no está pendiente o ya no existe: 404, 409, o un 400 de estado (sin errores de campos).
+  static bool _alreadyResolved(ApiException e) =>
+      e.statusCode == 404 || e.statusCode == 409 || (e.statusCode == 400 && e.fieldErrors.isEmpty);
 
   @override
   Widget build(BuildContext context) {
@@ -82,41 +98,44 @@ class _MerchantRequestScreenState extends ConsumerState<MerchantRequestScreen> {
     final draft = widget.merchant.profile.draft;
     final submitted = widget.merchant.submittedAt;
     final now = (widget.now ?? DateTime.now)();
-    return Scaffold(
-      appBar: AppBar(title: const Text('Solicitud')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(FestaSpace.xl, FestaSpace.xs, FestaSpace.xl, FestaSpace.xl),
-        children: [
-          Text(draft.businessName, style: text.headlineMedium),
-          const SizedBox(height: FestaSpace.md),
-          _Field(label: 'Categoría', value: draft.category.label),
-          _Field(label: 'Ubicación', value: draft.address),
-          if (draft.description.trim().isNotEmpty) _Field(label: 'Descripción', value: draft.description),
-          if (submitted != null)
-            _Field(label: 'Enviado', value: '${submittedLong(submitted, now)} · cuenta de comercio'),
-          const SizedBox(height: FestaSpace.xs),
-          const _InfoBox('Revisa que el lugar y la descripción sean reales antes de aprobar.'),
-        ],
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(FestaSpace.xl, FestaSpace.xs, FestaSpace.xl, FestaSpace.md),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              FilledButton(
-                key: const Key('team.approve'),
-                onPressed: _sending ? null : _approve,
-                child: const Text('Aprobar comercio'),
-              ),
-              const SizedBox(height: FestaSpace.sm),
-              OutlinedButton(
-                key: const Key('team.reject'),
-                onPressed: _sending ? null : _reject,
-                child: const Text('Rechazar con motivo'),
-              ),
-            ],
+    return PopScope(
+      canPop: !_sending,
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Solicitud')),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(FestaSpace.xl, FestaSpace.xs, FestaSpace.xl, FestaSpace.xl),
+          children: [
+            Text(draft.businessName, style: text.headlineMedium),
+            const SizedBox(height: FestaSpace.md),
+            _Field(label: 'Categoría', value: draft.category.label),
+            _Field(label: 'Ubicación', value: draft.address),
+            if (draft.description.trim().isNotEmpty) _Field(label: 'Descripción', value: draft.description),
+            if (submitted != null)
+              _Field(label: 'Enviado', value: '${submittedLong(submitted, now)} · cuenta de comercio'),
+            const SizedBox(height: FestaSpace.xs),
+            const _InfoBox('Revisa que el lugar y la descripción sean reales antes de aprobar.'),
+          ],
+        ),
+        bottomNavigationBar: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(FestaSpace.xl, FestaSpace.xs, FestaSpace.xl, FestaSpace.md),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                FilledButton(
+                  key: const Key('team.approve'),
+                  onPressed: _sending ? null : _approve,
+                  child: const Text('Aprobar comercio'),
+                ),
+                const SizedBox(height: FestaSpace.sm),
+                OutlinedButton(
+                  key: const Key('team.reject'),
+                  onPressed: _sending ? null : _reject,
+                  child: const Text('Rechazar con motivo'),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -194,8 +213,14 @@ class _RejectDialogState extends State<_RejectDialog> {
     super.dispose();
   }
 
-  // user-service cuenta con `@Size(max = 500)`, en unidades UTF-16 como `String.length`.
-  bool get _valid => _reason.text.trim().isNotEmpty && _reason.text.trim().length <= maxLength;
+  // user-service cuenta con `@Size(max = 500)`, en unidades UTF-16 como `String.length`. El contador de la
+  // pantalla cuenta igual: con `maxLength` de Flutter contaría caracteres visibles y un emoji (que vale 2)
+  // dejaría el botón gris sin explicación.
+  int get _length => _reason.text.trim().length;
+
+  bool get _tooLong => _length > maxLength;
+
+  bool get _valid => _length > 0 && !_tooLong;
 
   @override
   Widget build(BuildContext context) => AlertDialog(
@@ -205,11 +230,12 @@ class _RejectDialogState extends State<_RejectDialog> {
       controller: _reason,
       autofocus: true,
       maxLines: 4,
-      maxLength: maxLength,
       onChanged: (_) => setState(() {}),
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         labelText: 'Motivo',
         hintText: 'Por ejemplo: la dirección no coincide con el lugar del negocio.',
+        counterText: '$_length/$maxLength',
+        errorText: _tooLong ? 'El motivo pasa de $maxLength caracteres (los emojis cuentan doble).' : null,
       ),
     ),
     actions: [
