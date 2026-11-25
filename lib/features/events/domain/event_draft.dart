@@ -12,6 +12,7 @@ class EventDraft {
     required this.endsAt,
     required this.category,
     required this.description,
+    this.descriptionAiGenerated = false,
     this.capacity,
   });
 
@@ -24,6 +25,7 @@ class EventDraft {
     endsAt: event.endsAt.toLocal(),
     category: event.category,
     description: event.description,
+    descriptionAiGenerated: event.descriptionAiGenerated,
     capacity: event.capacity,
   );
 
@@ -35,6 +37,9 @@ class EventDraft {
   final DateTime endsAt;
   final EventCategory category;
   final String description;
+
+  /// Si la descripción la redactó la IA (RF9). Se le avisa a la gente en el detalle del evento.
+  final bool descriptionAiGenerated;
 
   /// `null` si no hay límite de personas.
   final int? capacity;
@@ -48,6 +53,7 @@ class EventDraft {
   Map<String, dynamic> _editableJson() => {
     'title': title,
     'description': description,
+    'descriptionAiGenerated': descriptionAiGenerated,
     'category': category.name,
     'startsAt': startsAt.toUtc().toIso8601String(),
     'endsAt': endsAt.toUtc().toIso8601String(),
