@@ -60,8 +60,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     itemCount: state.messages.length + (state.sending ? 1 : 0),
                     separatorBuilder: (_, _) => const SizedBox(height: FestaSpace.sm),
                     itemBuilder: (context, i) {
-                      if (i == state.messages.length) return const _TypingBubble();
-                      return _MessageBubble(message: state.messages[i]);
+                      if (i == state.messages.length) return const FestaFadeSlideIn(child: _TypingBubble());
+                      // Cada mensaje nuevo entra deslizándose; los que ya estaban no se mueven.
+                      return FestaFadeSlideIn(child: _MessageBubble(message: state.messages[i]));
                     },
                   ),
           ),
@@ -206,11 +207,13 @@ class _TypingBubble extends StatelessWidget {
   const _TypingBubble();
 
   @override
-  Widget build(BuildContext context) => const Align(
+  Widget build(BuildContext context) => Align(
     alignment: Alignment.centerLeft,
-    child: Padding(
-      padding: EdgeInsets.all(FestaSpace.xs),
-      child: SizedBox(key: Key('chat.typing'), width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+    child: Container(
+      key: const Key('chat.typing'),
+      padding: const EdgeInsets.symmetric(horizontal: FestaSpace.sm, vertical: FestaSpace.sm),
+      decoration: BoxDecoration(color: FestaColors.bgIa, borderRadius: BorderRadius.circular(FestaRadius.md)),
+      child: const FestaTypingDots(),
     ),
   );
 }

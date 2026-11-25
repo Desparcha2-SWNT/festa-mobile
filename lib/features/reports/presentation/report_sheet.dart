@@ -23,6 +23,10 @@ Future<bool> showReportSheet(
   );
   if (sent ?? false) {
     messenger.showSnackBar(const SnackBar(content: Text('Gracias. El equipo de Festa revisará tu reporte.')));
+    // Sin confeti: reportar no es una fiesta, solo la confirmación de que llegó.
+    if (context.mounted) {
+      FestaCelebration.show(context, title: 'Reporte recibido', icon: Icons.flag_rounded, confetti: false);
+    }
   }
   return sent ?? false;
 }

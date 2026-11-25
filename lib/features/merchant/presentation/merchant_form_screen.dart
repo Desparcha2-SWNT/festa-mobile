@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/design/design.dart';
 import '../../../app/routes.dart';
 import '../../../app/theme.dart';
 import '../../../core/network/api_exception.dart';
@@ -107,6 +108,11 @@ class _MerchantFormScreenState extends ConsumerState<MerchantFormScreen> {
       // router se refresca y puede volver a armar la pila de pantallas.
       if (!mounted) return;
       final verified = ref.read(merchantControllerProvider).value?.status == MerchantStatus.verified;
+      FestaCelebration.show(
+        context,
+        title: verified ? 'Comercio actualizado' : '¡Solicitud enviada!',
+        message: verified ? null : 'El equipo de Festa la revisa y te avisa.',
+      );
       context.go(verified ? Routes.myMerchant : Routes.merchantStatus);
     } on ApiException catch (e) {
       if (!mounted) return;

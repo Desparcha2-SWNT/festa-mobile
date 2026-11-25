@@ -19,12 +19,18 @@ class SplashScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Logo de Festa (texto negro + corona rosa sobre fondo blanco)
-              Image(image: AssetImage('assets/images/logo_festa.png'), width: 180, semanticLabel: 'Festa'),
+              // Logo de Festa (texto negro + corona rosa sobre fondo blanco). Entra primero y el lema después.
+              FestaFadeSlideIn(
+                offset: 0.15,
+                child: Image(image: AssetImage('assets/images/logo_festa.png'), width: 180, semanticLabel: 'Festa'),
+              ),
               SizedBox(height: 24),
-              Text(
-                'Menos buscar, más vivir la ciudad.',
-                style: TextStyle(fontSize: 15, color: FestaColors.textSecondary, letterSpacing: 0.1),
+              FestaFadeSlideIn(
+                index: 4,
+                child: Text(
+                  'Menos buscar, más vivir la ciudad.',
+                  style: TextStyle(fontSize: 15, color: FestaColors.textSecondary, letterSpacing: 0.1),
+                ),
               ),
             ],
           ),

@@ -67,41 +67,67 @@ class _AttendanceBarState extends ConsumerState<AttendanceBar> {
   Widget build(BuildContext context) {
     final provider = attendanceControllerProvider(widget.event.id);
     final text = Theme.of(context).textTheme;
+    // Celebra solo el paso de "no voy" a "voy" que hace la persona, no la carga inicial.
+    ref.listen(provider, (previous, next) {
+      if (previous?.value?.confirmed == false && next.value?.confirmed == true) {
+        FestaCelebration.show(context, title: '¡Vas a este plan!', message: 'Te esperamos en ${widget.event.title}');
+      }
+    });
     return switch (ref.watch(provider)) {
       AsyncData(:final value) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            value.capacity == null
-                ? '${value.attendeeCount} ${value.attendeeCount == 1 ? 'persona va' : 'personas van'}'
-                : '${value.attendeeCount} de ${value.capacity} cupos ocupados',
-            key: const Key('attendance.count'),
-            style: text.bodySmall?.copyWith(color: FestaColors.textSecondary),
-            textAlign: TextAlign.center,
+          FestaAnimatedCount(
+            value: value.attendeeCount,
+            builder: (context, shown) => Text(
+              value.capacity == null
+                  ? '$shown ${shown == 1 ? 'persona va' : 'personas van'}'
+                  : '$shown de ${value.capacity} cupos ocupados',
+              key: const Key('attendance.count'),
+              style: text.bodySmall?.copyWith(color: FestaColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
           ),
           const SizedBox(height: FestaSpace.xs),
-          if (value.confirmed) ...[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.check_circle, color: FestaColors.textSuccess, size: 20),
-                const SizedBox(width: FestaSpace.xs),
-                Text('Vas a este plan', key: const Key('attendance.going'), style: text.titleSmall),
-              ],
+          AnimatedSwitcher(
+            duration: FestaMotion.of(context, FestaMotion.base),
+            switchInCurve: FestaMotion.emphasized,
+            switchOutCurve: FestaMotion.exit,
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: ScaleTransition(scale: Tween(begin: 0.92, end: 1.0).animate(animation), child: child),
             ),
-            const SizedBox(height: FestaSpace.xs),
-            OutlinedButton(
-              key: const Key('attendance.cancel'),
-              onPressed: _sending ? null : _confirmCancel,
-              child: const Text('Cancelar asistencia'),
-            ),
-          ] else
-            FilledButton(
-              key: const Key('attendance.confirm'),
-              onPressed: _sending || value.full ? null : () => _run((c) => c.confirm(), '¡Listo! Quedó en tus planes.'),
-              child: Text(value.full ? 'Sin cupos' : 'Confirmo que voy'),
-            ),
+            child: value.confirmed
+                ? Column(
+                    key: const ValueKey('attendance.state.going'),
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.check_circle, color: FestaColors.textSuccess, size: 20),
+                          const SizedBox(width: FestaSpace.xs),
+                          Text('Vas a este plan', key: const Key('attendance.going'), style: text.titleSmall),
+                        ],
+                      ),
+                      const SizedBox(height: FestaSpace.xs),
+                      OutlinedButton(
+                        key: const Key('attendance.cancel'),
+                        onPressed: _sending ? null : _confirmCancel,
+                        child: const Text('Cancelar asistencia'),
+                      ),
+                    ],
+                  )
+                : FilledButton(
+                    key: const Key('attendance.confirm'),
+                    onPressed: _sending || value.full
+                        ? null
+                        : () => _run((c) => c.confirm(), '¡Listo! Quedó en tus planes.'),
+                    child: Text(value.full ? 'Sin cupos' : 'Confirmo que voy'),
+                  ),
+          ),
         ],
       ),
       AsyncError(:final error) => TextButton.icon(

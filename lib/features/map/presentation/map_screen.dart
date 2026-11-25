@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/design/design.dart';
 import '../../../app/routes.dart';
 import '../../events/application/events_providers.dart';
 import '../../events/domain/event.dart';
@@ -159,10 +160,31 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       ],
                     ),
                   ),
-                  if (selected != null) ...[
-                    const SizedBox(height: 8),
-                    EventPreviewCard(event: selected, onTap: () => context.push(Routes.eventDetail(selected.id))),
-                  ],
+                  // La tarjeta del evento elegido sube desde abajo; al elegir otro, se cruzan.
+                  AnimatedSwitcher(
+                    duration: FestaMotion.of(context, FestaMotion.base),
+                    switchInCurve: FestaMotion.standard,
+                    switchOutCurve: FestaMotion.exit,
+                    transitionBuilder: (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween(begin: const Offset(0, 0.4), end: Offset.zero).animate(animation),
+                        child: child,
+                      ),
+                    ),
+                    child: selected == null
+                        ? const SizedBox.shrink()
+                        : Padding(
+                            key: ValueKey(selected.id),
+                            padding: const EdgeInsets.only(top: 8),
+                            child: FestaPressable(
+                              child: EventPreviewCard(
+                                event: selected,
+                                onTap: () => context.push(Routes.eventDetail(selected.id)),
+                              ),
+                            ),
+                          ),
+                  ),
                 ],
               ),
             ),

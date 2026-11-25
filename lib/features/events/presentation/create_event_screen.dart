@@ -59,6 +59,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
       ref.invalidate(myEventsProvider);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('¡Evento publicado!')));
+      FestaCelebration.show(context, title: '¡Ya está en el mapa!', message: draft.title);
       context.go(Routes.myEvents);
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e);

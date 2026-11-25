@@ -117,7 +117,10 @@ class _EventList extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       itemCount: events.length,
       separatorBuilder: (_, _) => const SizedBox(height: 12),
-      itemBuilder: (_, index) => _MyEventCard(event: events[index]),
+      itemBuilder: (_, index) => FestaFadeSlideIn(
+        index: index,
+        child: FestaPressable(child: _MyEventCard(event: events[index])),
+      ),
     );
   }
 }
