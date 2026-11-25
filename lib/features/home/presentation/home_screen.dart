@@ -35,6 +35,12 @@ class HomeScreen extends ConsumerWidget {
             onPressed: () => context.push(Routes.plans),
           ),
           IconButton(
+            key: const Key('home.passes'),
+            tooltip: 'Mis entradas',
+            icon: const Icon(Icons.qr_code_2_outlined),
+            onPressed: () => context.push(Routes.passes),
+          ),
+          IconButton(
             key: const Key('home.profile'),
             tooltip: 'Mi perfil',
             icon: const Icon(Icons.person_outline),

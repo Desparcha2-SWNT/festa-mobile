@@ -14,6 +14,7 @@ abstract final class Routes {
   static const merchantStatus = '/merchant/status';
   static const profile = '/profile';
   static const plans = '/plans';
+  static const passes = '/passes';
 
   /// Chat de recomendaciones con la IA (RF8).
   static const chat = '/chat';
