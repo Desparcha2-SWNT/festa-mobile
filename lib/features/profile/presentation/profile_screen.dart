@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/design/design.dart';
 import '../../../app/routes.dart';
+import '../../../core/config/app_version.dart';
 import '../../../core/network/api_exception.dart';
 import '../../auth/application/session_controller.dart';
 import '../application/profile_providers.dart';
@@ -221,6 +222,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           onPressed: _saving ? null : _confirmLogout,
           child: const Text('Cerrar sesión'),
         ),
+        const SizedBox(height: FestaSpace.lg),
+        // Si no se puede leer la versión (por ejemplo, sin el plugin de la plataforma), no se muestra nada.
+        ref
+            .watch(appVersionProvider)
+            .maybeWhen(
+              data: (version) => Text(
+                version.label,
+                key: const Key('profile.version'),
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(color: FestaColors.textSecondary),
+              ),
+              orElse: () => const SizedBox.shrink(),
+            ),
       ],
     );
   }
