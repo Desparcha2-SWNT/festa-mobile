@@ -236,6 +236,8 @@ class _RejectDialogState extends State<_RejectDialog> {
         hintText: 'Por ejemplo: la dirección no coincide con el lugar del negocio.',
         counterText: '$_length/$maxLength',
         errorText: _tooLong ? 'El motivo pasa de $maxLength caracteres (los emojis cuentan doble).' : null,
+        // En un diálogo angosto el aviso no cabe en una línea; sin esto se corta con «…».
+        errorMaxLines: 2,
       ),
     ),
     actions: [
