@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/routes.dart';
 import '../../auth/application/session_controller.dart';
+import '../../auth/domain/account.dart';
 import '../../location/presentation/widgets/location_consent_button.dart';
 import '../../location/presentation/widgets/location_fallback_banner.dart';
+import '../../team/presentation/team_screen.dart';
 
 /// Pantalla de inicio provisional: confirma la sesión y permite cerrarla (SCRUM-51).
 /// La reemplazará el mapa de eventos.
@@ -58,6 +60,17 @@ class HomeScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             const LocationFallbackBanner(),
+            // SCRUM-61: las cuentas del equipo Festa entran a su revisión manual (comercios por verificar).
+            if (account?.role == Role.admin) ...[
+              const SizedBox(height: 16),
+              FilledButton.tonalIcon(
+                key: const Key('home.team'),
+                onPressed: () =>
+                    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const TeamScreen())),
+                icon: const Icon(Icons.verified_user_outlined),
+                label: const Text('Equipo Festa'),
+              ),
+            ],
           ],
         ),
       ),
