@@ -86,6 +86,32 @@ void main() {
     expect(request.data, {'outcome': 'dismissed'});
   });
 
+  test('ocultar el evento cierra el reporte con la acción y el motivo', () async {
+    final (api, adapter) = build(200, reportJson());
+
+    await api.hideEvent('r1', reason: '  Evento falso.  ');
+
+    final request = adapter.seen.single;
+    expect('${request.method} ${request.path}', 'POST /api/users/admin/reports/r1/resolve');
+    expect(request.data, {'outcome': 'action_taken', 'action': 'hide_event', 'reason': 'Evento falso.'});
+  });
+
+  test('suspender la cuenta manda la fecha de fin en UTC, y sin motivo ni fecha no manda esos campos', () async {
+    final (api, adapter) = build(200, reportJson(targetType: 'user'));
+
+    await api.suspendUser('r2', reason: 'Acoso repetido.', until: DateTime.utc(2026, 12, 2, 19));
+    await api.suspendUser('r3', reason: ' ');
+
+    expect(adapter.seen[0].path, '/api/users/admin/reports/r2/resolve');
+    expect(adapter.seen[0].data, {
+      'outcome': 'action_taken',
+      'action': 'suspend_user',
+      'reason': 'Acoso repetido.',
+      'suspendedUntil': '2026-12-02T19:00:00.000Z',
+    });
+    expect(adapter.seen[1].data, {'outcome': 'action_taken', 'action': 'suspend_user'});
+  });
+
   test('un reporte que ya cerró otra persona llega como ApiException 409', () async {
     final (api, _) = build(409, {
       'error': {'code': 'REPORT_ALREADY_RESOLVED', 'message': 'El reporte ya está cerrado'},

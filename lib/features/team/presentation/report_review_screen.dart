@@ -14,7 +14,8 @@ import 'submitted_formatters.dart';
 import 'team_widgets.dart';
 
 /// SCRUM-110 (RF14): un reporte abierto, con lo reportado (el evento o la cuenta) para revisarlo a mano, y la
-/// decisión del equipo. Cierra la pantalla con el mensaje que la cola muestra.
+/// decisión del equipo: ocultar el evento o suspender la cuenta (SCRUM-111), o descartarlo. Cierra la pantalla
+/// con el mensaje que la cola muestra.
 class ReportReviewScreen extends ConsumerStatefulWidget {
   const ReportReviewScreen({required this.report, super.key, this.now});
 
@@ -45,6 +46,29 @@ class _ReportReviewScreenState extends ConsumerState<ReportReviewScreen> {
       ),
     );
     if (confirmed ?? false) await _send((api) => api.dismiss(widget.report.reportId), 'Reporte descartado.');
+  }
+
+  Future<void> _act() async {
+    final report = widget.report;
+    final decision = await showDialog<_Decision>(
+      context: context,
+      builder: (_) => _ActionDialog(target: report.target),
+    );
+    if (decision == null) return;
+    switch (report.target) {
+      case ReportTarget.event:
+        await _send(
+          (api) => api.hideEvent(report.reportId, reason: decision.reason),
+          'Evento oculto: ya no aparece en el mapa ni en la búsqueda.',
+        );
+      case ReportTarget.user:
+        final duration = decision.duration;
+        final until = duration == null ? null : (widget.now ?? DateTime.now)().add(duration);
+        await _send(
+          (api) => api.suspendUser(report.reportId, reason: decision.reason, until: until),
+          duration == null ? 'Cuenta suspendida sin fecha de fin.' : 'Cuenta suspendida por ${duration.inDays} días.',
+        );
+    }
   }
 
   Future<void> _send(Future<void> Function(TeamReportsApi api) action, String done) async {
@@ -98,7 +122,14 @@ class _ReportReviewScreenState extends ConsumerState<ReportReviewScreen> {
             if (comment != null && comment.isNotEmpty) TeamField(label: 'Comentario de quien reporta', value: comment),
             if (created != null) TeamField(label: 'Reportado', value: submittedLong(created, now)),
             const SizedBox(height: FestaSpace.xs),
-            const TeamInfoBox('Revisa lo reportado antes de decidir. Descartar cierra el reporte sin cambiar nada.'),
+            TeamInfoBox(switch (report.target) {
+              ReportTarget.event =>
+                'Revisa el evento antes de decidir. Al ocultarlo deja de aparecer en el mapa y la búsqueda; descartar '
+                    'cierra el reporte sin cambiar nada.',
+              ReportTarget.user =>
+                'Revisa la cuenta antes de decidir. Al suspenderla no puede iniciar sesión, se cierran sus sesiones y '
+                    'sus eventos dejan de aparecer; descartar cierra el reporte sin cambiar nada.',
+            }),
           ],
         ),
         bottomNavigationBar: SafeArea(
@@ -108,6 +139,15 @@ class _ReportReviewScreenState extends ConsumerState<ReportReviewScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                FilledButton(
+                  key: const Key('team.report.act'),
+                  onPressed: _sending ? null : _act,
+                  child: Text(switch (report.target) {
+                    ReportTarget.event => 'Ocultar evento',
+                    ReportTarget.user => 'Suspender cuenta',
+                  }),
+                ),
+                const SizedBox(height: FestaSpace.sm),
                 OutlinedButton(
                   key: const Key('team.report.dismiss'),
                   onPressed: _sending ? null : _dismiss,
@@ -175,4 +215,105 @@ class _ReportedAccount extends ConsumerWidget {
     };
     return TeamField(key: const Key('team.report.subject'), label: ReportTarget.user.label, value: value);
   }
+}
+
+/// Lo que decide el equipo al actuar: el motivo (opcional) y, para una cuenta, cuánto dura la suspensión
+/// (`null` = sin fecha de fin).
+class _Decision {
+  const _Decision({this.reason, this.duration});
+
+  final String? reason;
+  final Duration? duration;
+}
+
+/// SCRUM-111: confirma la acción sobre el reporte. Pide un motivo opcional (queda en el registro de moderación)
+/// y, para suspender una cuenta, la duración.
+class _ActionDialog extends StatefulWidget {
+  const _ActionDialog({required this.target});
+
+  final ReportTarget target;
+
+  @override
+  State<_ActionDialog> createState() => _ActionDialogState();
+}
+
+class _ActionDialogState extends State<_ActionDialog> {
+  static const maxLength = 500;
+
+  /// Duraciones de suspensión que ofrece la pantalla; `null` es sin fecha de fin.
+  static const durations = <(String, Duration?)>[
+    ('7 días', Duration(days: 7)),
+    ('30 días', Duration(days: 30)),
+    ('Sin fecha de fin', null),
+  ];
+
+  final _reason = TextEditingController();
+  Duration? _duration = const Duration(days: 7);
+
+  @override
+  void dispose() {
+    _reason.dispose();
+    super.dispose();
+  }
+
+  // Igual que el rechazo de comercios: user-service cuenta con `@Size(max = 500)` en unidades UTF-16.
+  int get _length => _reason.text.trim().length;
+
+  bool get _tooLong => _length > maxLength;
+
+  bool get _event => widget.target == ReportTarget.event;
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(_event ? '¿Ocultar el evento?' : '¿Suspender la cuenta?'),
+    content: SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!_event) ...[
+            Text('Duración', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: FestaSpace.xs),
+            Wrap(
+              spacing: FestaSpace.xs,
+              runSpacing: FestaSpace.xs,
+              children: [
+                for (final (label, duration) in durations)
+                  ChoiceChip(
+                    key: Key('team.report.duration.${duration?.inDays ?? 'none'}'),
+                    label: Text(label),
+                    selected: _duration == duration,
+                    onSelected: (_) => setState(() => _duration = duration),
+                  ),
+              ],
+            ),
+            const SizedBox(height: FestaSpace.md),
+          ],
+          TextField(
+            key: const Key('team.report.reason'),
+            controller: _reason,
+            maxLines: 3,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: 'Motivo (opcional)',
+              hintText: 'Queda en el registro de moderación.',
+              counterText: '$_length/$maxLength',
+              errorText: _tooLong ? 'El motivo pasa de $maxLength caracteres (los emojis cuentan doble).' : null,
+              errorMaxLines: 2,
+            ),
+          ),
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+      FilledButton(
+        key: const Key('team.report.act.confirm'),
+        onPressed: _tooLong
+            ? null
+            : () => Navigator.pop(context, _Decision(reason: _reason.text.trim(), duration: _event ? null : _duration)),
+        child: Text(_event ? 'Ocultar' : 'Suspender'),
+      ),
+    ],
+  );
 }
