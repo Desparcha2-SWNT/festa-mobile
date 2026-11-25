@@ -111,7 +111,7 @@ class _MerchantFormScreenState extends ConsumerState<MerchantFormScreen> {
       FestaCelebration.show(
         context,
         title: verified ? 'Comercio actualizado' : '¡Solicitud enviada!',
-        message: verified ? null : 'El equipo de Festa la revisa y te avisa.',
+        message: verified ? null : 'El equipo de Festa la revisa. Aquí puedes ver el estado.',
       );
       context.go(verified ? Routes.myMerchant : Routes.merchantStatus);
     } on ApiException catch (e) {
