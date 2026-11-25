@@ -138,11 +138,31 @@ jobs:
         id: artefacto
         run: |
           version=$(sed -n 's/^version: //p' pubspec.yaml)
-          nombre="festa-mobile-v${version}.apk"
+          # El APK lleva siempre el mismo nombre: así el enlace
+          # releases/latest/download/festa-mobile.apk no cambia entre versiones y sirve para
+          # QR impresos y documentación. La versión no va en el nombre del archivo: queda en el
+          # tag, el título y la descripción del release, y en version.json.
+          nombre="festa-mobile.apk"
+          tag="mobile-v${version}-${{ github.run_number }}"
           cp build/app/outputs/flutter-apk/app-release.apk "$nombre"
+          sha256=$(sha256sum "$nombre" | cut -d' ' -f1)
+          fecha=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          cat > version.json <<EOF
+          {
+            "version": "${version}",
+            "tag": "${tag}",
+            "commit": "${{ github.sha }}",
+            "run": ${{ github.run_number }},
+            "fecha": "${fecha}",
+            "sha256": "${sha256}"
+          }
+          EOF
           {
             echo "nombre=$nombre"
-            echo "tag=mobile-v${version}-${{ github.run_number }}"
+            echo "tag=$tag"
+            echo "version=$version"
+            echo "sha256=$sha256"
+            echo "fecha=$fecha"
           } >> "$GITHUB_OUTPUT"
 
       - name: Subir el APK como artefacto del build (sin publicar)
@@ -175,6 +195,19 @@ jobs:
             desconocidos" en el celular:
 
             ![QR de instalación](https://github.com/${{ github.repository }}/releases/download/${{ steps.artefacto.outputs.tag }}/qr.png)
+
+            Enlace fijo a la última versión: https://github.com/${{ github.repository }}/releases/latest/download/festa-mobile.apk
+
+            ### Versión
+            - Versión de la app: `${{ steps.artefacto.outputs.version }}`
+            - Tag: `${{ steps.artefacto.outputs.tag }}`
+            - Commit: [`${{ github.sha }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+            - Ejecución del flujo: [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            - Compilado: `${{ steps.artefacto.outputs.fecha }}`
+            - SHA-256 de `festa-mobile.apk`: `${{ steps.artefacto.outputs.sha256 }}`
+
+            Los mismos datos están en `version.json`.
           files: |
             ${{ steps.artefacto.outputs.nombre }}
+            version.json
             qr.png
