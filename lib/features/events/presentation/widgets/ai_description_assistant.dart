@@ -120,15 +120,42 @@ class _AiDescriptionAssistantState extends ConsumerState<AiDescriptionAssistant>
             label: Text(widget.generated ? 'Generar otra versión con IA' : 'Generar con IA'),
           ),
         ),
+        // Mientras la IA escribe: recuadro lila (IA en el Figma) con los puntos de "escribiendo".
+        AnimatedSize(
+          duration: FestaMotion.of(context, FestaMotion.base),
+          curve: FestaMotion.standard,
+          child: _loading
+              ? Container(
+                  key: const Key('eventForm.aiWriting'),
+                  margin: const EdgeInsets.only(top: FestaSpace.xs),
+                  padding: const EdgeInsets.symmetric(horizontal: FestaSpace.sm, vertical: FestaSpace.xs),
+                  decoration: BoxDecoration(
+                    color: FestaColors.bgIa,
+                    borderRadius: BorderRadius.circular(FestaRadius.sm),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const FestaTypingDots(),
+                      const SizedBox(width: FestaSpace.xs),
+                      Text('Festi está escribiendo…', style: theme.textTheme.bodySmall),
+                    ],
+                  ),
+                )
+              : const SizedBox(width: double.infinity),
+        ),
         if (widget.generated)
-          Container(
-            key: const Key('eventForm.aiNotice'),
-            margin: const EdgeInsets.only(top: FestaSpace.xs),
-            padding: const EdgeInsets.all(FestaSpace.xs),
-            decoration: BoxDecoration(color: FestaColors.bgIa, borderRadius: BorderRadius.circular(FestaRadius.sm)),
-            child: Text(
-              'Texto generado con IA. Revísalo y edítalo antes de publicar: la IA sugiere, tú decides.',
-              style: theme.textTheme.bodySmall?.copyWith(color: FestaColors.textPrimary),
+          FestaFadeSlideIn(
+            key: const ValueKey('eventForm.aiNotice.in'),
+            child: Container(
+              key: const Key('eventForm.aiNotice'),
+              margin: const EdgeInsets.only(top: FestaSpace.xs),
+              padding: const EdgeInsets.all(FestaSpace.xs),
+              decoration: BoxDecoration(color: FestaColors.bgIa, borderRadius: BorderRadius.circular(FestaRadius.sm)),
+              child: Text(
+                'Texto generado con IA. Revísalo y edítalo antes de publicar: la IA sugiere, tú decides.',
+                style: theme.textTheme.bodySmall?.copyWith(color: FestaColors.textPrimary),
+              ),
             ),
           ),
         if (_error != null)

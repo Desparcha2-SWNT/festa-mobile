@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import 'design/design.dart';
@@ -75,6 +76,22 @@ abstract final class FestaTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(foregroundColor: FestaColors.textBrand, textStyle: FestaText.labelM),
+      ),
+      // Movimiento (ver design/motion.dart): las pantallas entran con un fundido hacia adelante en Android y
+      // con el deslizamiento nativo en iOS. Los avisos flotan en vez de pegarse al borde.
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        },
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: FestaColors.bgInverse,
+        contentTextStyle: FestaText.bodyM.copyWith(color: FestaColors.textOnInverse),
+        actionTextColor: FestaPalette.magenta100,
+        shape: RoundedRectangleBorder(borderRadius: FestaRadius.mdAll),
+        insetPadding: const EdgeInsets.all(FestaSpace.md),
       ),
     );
   }
