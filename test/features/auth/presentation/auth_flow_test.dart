@@ -72,6 +72,28 @@ void main() {
     expect(find.text('Hola, Ana'), findsOneWidget);
   });
 
+  testWidgets('una cuenta del equipo Festa ve la entrada a «Revisión de comercios» en el inicio (SCRUM-61)', (
+    tester,
+  ) async {
+    storage.refreshToken = 'refresh-0';
+    const admin = Account(id: 'a1', email: 'equipo@escuelaing.edu.co', displayName: 'Ana', role: Role.admin);
+    when(() => api.refresh('refresh-0')).thenAnswer((_) async => testSession('1', admin));
+
+    await pumpApp(tester);
+
+    expect(find.byKey(const Key('home.team')), findsOneWidget);
+  });
+
+  testWidgets('una cuenta normal no ve la entrada del equipo', (tester) async {
+    storage.refreshToken = 'refresh-0';
+    when(() => api.refresh('refresh-0')).thenAnswer((_) async => testSession());
+
+    await pumpApp(tester);
+
+    expect(find.text('Hola, Ana'), findsOneWidget);
+    expect(find.byKey(const Key('home.team')), findsNothing);
+  });
+
   testWidgets('el login valida el formulario antes de llamar al servidor', (tester) async {
     await pumpApp(tester);
 
