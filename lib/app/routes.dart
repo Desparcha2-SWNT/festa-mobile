@@ -15,6 +15,9 @@ abstract final class Routes {
   static const profile = '/profile';
   static const plans = '/plans';
 
+  /// Chat de recomendaciones con la IA (RF8).
+  static const chat = '/chat';
+
   /// Lista de asistentes de un evento, para su organizador (SCRUM-141).
   static const eventAttendees = '/events/:id/attendees';
 
