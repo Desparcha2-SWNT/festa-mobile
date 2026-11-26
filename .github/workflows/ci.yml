@@ -33,6 +33,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Detectar proyecto Flutter
         id: proyecto
@@ -80,3 +82,19 @@ jobs:
               print "|---|---|---|"
               printf "| Líneas | %.2f %% | %d de %d |\n", (lf ? 100 * lh / lf : 0), lh, lf
             }' coverage/lcov.info >> "$GITHUB_STEP_SUMMARY"
+
+      # Análisis de SonarCloud desde el CI, con la cobertura (coverage/lcov.info de flutter test).
+      # Requiere SONAR_TOKEN (secreto de la organización) y el análisis automático apagado en el proyecto.
+      - name: Análisis de SonarCloud
+        if: always() && steps.proyecto.outputs.existe == 'true' && hashFiles('coverage/lcov.info') != ''
+        uses: SonarSource/sonarqube-scan-action@70bad232163b09d998ea0707ee80c0ec80798c16 # v8.5.1
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=desparcha2-swnt
+            -Dsonar.projectKey=Desparcha2-SWNT_festa-mobile
+            -Dsonar.sources=lib
+            -Dsonar.tests=test
+            -Dsonar.exclusions=**/*.g.dart
+            -Dsonar.dart.lcov.reportPaths=coverage/lcov.info
