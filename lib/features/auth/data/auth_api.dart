@@ -18,13 +18,14 @@ class AuthApi {
     required String password,
     required String displayName,
     required AccountType accountType,
-    // acceptedPrivacyPolicy: validación solo en el front (Ley 1581).
-    // El auth-service NO lo recibe en RegisterRequest; se omite del body.
+    // SCRUM-126 (Ley 1581): auth-service exige la autorización y la registra; sin ella responde 400.
+    required bool acceptedPrivacyPolicy,
   }) => _postSession('/api/auth/register', {
     'email': email,
     'password': password,
     'displayName': displayName,
     'accountType': accountType.apiValue,
+    'acceptedPrivacyPolicy': acceptedPrivacyPolicy,
   });
 
   Future<AuthSession> login({required String email, required String password}) =>

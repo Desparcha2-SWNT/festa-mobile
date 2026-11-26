@@ -139,7 +139,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           .registerMerchant(
             email: _email.text.trim(),
             password: _password.text,
-            acceptedPrivacyPolicy: _acceptedPrivacy, // validado localmente; no va al back
+            acceptedPrivacyPolicy: _acceptedPrivacy,
             draft: MerchantDraft(
               businessName: _name.text.trim(),
               category: MerchantCategory.fromApi(_categoryApiValues[_category]!),
@@ -239,7 +239,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 enabled: !_submitting,
                 onChanged: (v) => setState(() => _acceptedPrivacy = v),
               ),
-              if (_error?.message != null) ...[const SizedBox(height: 12), _ErrorBanner(message: _error!.message)],
+              if (_error?.message != null) ...[
+                const SizedBox(height: 12),
+                _ErrorBanner(message: _error!.fieldErrors['acceptedPrivacyPolicy'] ?? _error!.message),
+              ],
               const SizedBox(height: 24),
               FilledButton(
                 key: const Key('register.submit'),
@@ -495,7 +498,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ],
               ),
             ),
-            if (_error?.message != null) ...[const SizedBox(height: 12), _ErrorBanner(message: _error!.message)],
+            if (_error?.message != null) ...[
+              const SizedBox(height: 12),
+              _ErrorBanner(message: _error!.fieldErrors['acceptedPrivacyPolicy'] ?? _error!.message),
+            ],
             const SizedBox(height: 24),
             FilledButton(
               key: const Key('register.submit'),
