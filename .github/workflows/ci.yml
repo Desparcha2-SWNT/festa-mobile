@@ -66,4 +66,17 @@ jobs:
       # El reporter "github" muestra cada prueba fallida como anotación en el PR.
       - name: Pruebas (flutter test)
         if: steps.proyecto.outputs.existe == 'true'
-        run: flutter test --reporter github
+        run: flutter test --reporter github --coverage
+
+      # lcov.info trae, por archivo, líneas encontradas (LF) y cubiertas (LH). Se excluye el código generado (*.g.dart).
+      - name: Resumen de cobertura
+        if: always() && steps.proyecto.outputs.existe == 'true' && hashFiles('coverage/lcov.info') != ''
+        run: |
+          awk -F: '/^SF:/ { gen = ($2 ~ /\.g\.dart$/) } /^LF:/ && !gen { lf += $2 } /^LH:/ && !gen { lh += $2 }
+            END {
+              print "## Cobertura de pruebas (lib/)"
+              print ""
+              print "| Métrica | Cobertura | Cubiertas |"
+              print "|---|---|---|"
+              printf "| Líneas | %.2f %% | %d de %d |\n", (lf ? 100 * lh / lf : 0), lh, lf
+            }' coverage/lcov.info >> "$GITHUB_STEP_SUMMARY"
