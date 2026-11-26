@@ -2,6 +2,7 @@ import 'package:festa/app/festa_app.dart';
 import 'package:festa/core/network/api_exception.dart';
 import 'package:festa/features/auth/application/auth_providers.dart';
 import 'package:festa/features/auth/domain/account.dart';
+import 'package:festa/features/events/application/events_providers.dart';
 import 'package:festa/features/location/application/location_providers.dart';
 import 'package:festa/features/location/domain/location_consent.dart';
 import 'package:festa/features/merchant/application/merchant_providers.dart';
@@ -75,6 +76,41 @@ void main() {
     await pumpApp(tester);
 
     expect(find.text('Hola, Ana'), findsOneWidget);
+  });
+
+  testWidgets('Explorar lista los planes cercanos, no solo el saludo', (tester) async {
+    storage.refreshToken = 'refresh-0';
+    when(() => api.refresh('refresh-0')).thenAnswer((_) async => testSession());
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authApiProvider.overrideWithValue(api),
+          merchantApiProvider.overrideWithValue(merchantApi),
+          tokenStorageProvider.overrideWithValue(storage),
+          passesCacheProvider.overrideWithValue(passesCache),
+          locationConsentStoreProvider.overrideWithValue(
+            InMemoryLocationConsentStore()
+              ..consents[testAccount.id] = const StoredLocationConsent(decision: LocationConsent.granted, synced: true),
+          ),
+          deviceLocationProvider.overrideWithValue(FakeDeviceLocation()),
+          exploreEventsProvider.overrideWith(
+            (ref) async => ExploreEvents(
+              events: [
+                testEvent(id: 'e1'),
+                testEvent(id: 'e2', title: 'Noche de jazz'),
+              ],
+            ),
+          ),
+        ],
+        child: const FestaApp(),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Planes cerca de ti'), findsOneWidget);
+    expect(find.text('Noche de jazz'), findsOneWidget);
   });
 
   testWidgets('si la app abre sin señal, desde el login se llega al QR guardado (SCRUM-91)', (tester) async {
