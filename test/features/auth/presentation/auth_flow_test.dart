@@ -233,6 +233,7 @@ void main() {
         password: any(named: 'password'),
         displayName: any(named: 'displayName'),
         accountType: any(named: 'accountType'),
+        acceptedPrivacyPolicy: any(named: 'acceptedPrivacyPolicy'),
       ),
     ).thenThrow(
       const ApiException(code: 'EMAIL_TAKEN', message: 'Ya existe una cuenta con ese correo.', statusCode: 409),
@@ -268,6 +269,7 @@ void main() {
         password: any(named: 'password'),
         displayName: any(named: 'displayName'),
         accountType: any(named: 'accountType'),
+        acceptedPrivacyPolicy: any(named: 'acceptedPrivacyPolicy'),
       ),
     );
   });
@@ -299,6 +301,7 @@ void main() {
       password: any(named: 'password'),
       displayName: any(named: 'displayName'),
       accountType: any(named: 'accountType'),
+      acceptedPrivacyPolicy: any(named: 'acceptedPrivacyPolicy'),
     ),
   ).thenAnswer((_) async => merchantSession);
 
@@ -315,6 +318,7 @@ void main() {
         password: 'festa123',
         displayName: 'Ana',
         accountType: AccountType.merchant,
+        acceptedPrivacyPolicy: true,
       ),
     ).called(1);
     final draft = verify(() => merchantApi.submit(captureAny())).captured.single as MerchantDraft;
@@ -348,6 +352,7 @@ void main() {
         password: any(named: 'password'),
         displayName: any(named: 'displayName'),
         accountType: any(named: 'accountType'),
+        acceptedPrivacyPolicy: any(named: 'acceptedPrivacyPolicy'),
       ),
     ).called(1);
     expect(find.byKey(const Key('merchant.status.title')), findsOneWidget);

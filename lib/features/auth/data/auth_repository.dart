@@ -38,7 +38,7 @@ class AuthRepository {
     required String password,
     required String displayName,
     required AccountType accountType,
-    // acceptedPrivacyPolicy: se valida en la UI (Ley 1581) pero no se envía al backend.
+    // SCRUM-126 (Ley 1581): la autorización se envía a auth-service, que la exige y la registra.
     required bool acceptedPrivacyPolicy,
   }) async {
     final session = await _api.register(
@@ -46,6 +46,7 @@ class AuthRepository {
       password: password,
       displayName: displayName,
       accountType: accountType,
+      acceptedPrivacyPolicy: acceptedPrivacyPolicy,
     );
     return _start(session);
   }
