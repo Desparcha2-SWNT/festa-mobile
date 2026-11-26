@@ -104,21 +104,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 onPressed: _submitting ? null : _submit,
                 child: _submitting ? const Text('Iniciando sesión...') : const Text('Iniciar sesión'),
               ),
-              const SizedBox(height: 20),
-              // Divisor con círculo (Figma: separador entre botones)
-              const _OrDivider(),
-              const SizedBox(height: 20),
-              // Botón de Google (el backend soporta POST /auth/google; la app aún no implementa el flujo)
-              OutlinedButton.icon(
-                key: const Key('login.google'),
-                onPressed: _submitting
-                    ? null
-                    : () {
-                        // TODO(SCRUM-?): implementar flujo OAuth de Google en la app
-                      },
-                icon: const _GoogleLogo(),
-                label: const Text('Continuar con Google'),
-              ),
               const SizedBox(height: 16),
               TextButton(
                 onPressed: _submitting ? null : () => context.go(Routes.register),
@@ -172,84 +157,4 @@ class _CredentialsError extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Divisor circular entre los dos botones (Figma: un círculo ○ centrado).
-class _OrDivider extends StatelessWidget {
-  const _OrDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Row(
-      children: [
-        Expanded(child: Divider()),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          child: Text('○', style: TextStyle(color: FestaColors.textDisabled, fontSize: 12)),
-        ),
-        Expanded(child: Divider()),
-      ],
-    );
-  }
-}
-
-/// Logo de Google en SVG simplificado (sin dependencia externa).
-class _GoogleLogo extends StatelessWidget {
-  const _GoogleLogo();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(width: 20, height: 20, child: CustomPaint(painter: _GoogleLogoPainter()));
-  }
-}
-
-class _GoogleLogoPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final r = size.width / 2;
-
-    // Arco rojo (superior)
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: r),
-      -1.57,
-      3.14,
-      false,
-      Paint()
-        ..color = const Color(0xFFEA4335)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * 0.18,
-    );
-    // Arco verde (inferior izq)
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: r),
-      1.57,
-      1.57,
-      false,
-      Paint()
-        ..color = const Color(0xFF34A853)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * 0.18,
-    );
-    // Arco amarillo (inferior der)
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: r),
-      0,
-      1.57,
-      false,
-      Paint()
-        ..color = const Color(0xFFFBBC05)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * 0.18,
-    );
-    // Línea azul horizontal (ala derecha)
-    final paint = Paint()
-      ..color = const Color(0xFF4285F4)
-      ..strokeWidth = size.width * 0.18
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(center, Offset(size.width, center.dy), paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
