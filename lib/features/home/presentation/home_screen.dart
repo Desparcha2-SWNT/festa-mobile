@@ -7,13 +7,15 @@ import '../../../app/design/design.dart';
 import '../../../app/routes.dart';
 import '../../auth/application/session_controller.dart';
 import '../../auth/domain/account.dart';
+import '../../events/application/events_providers.dart';
+import '../../events/domain/event.dart';
+import '../../events/presentation/widgets/event_preview_card.dart';
 import '../../location/presentation/widgets/location_consent_button.dart';
 import '../../location/presentation/widgets/location_fallback_banner.dart';
 import '../../team/presentation/merchant_review_screen.dart';
 import '../../team/presentation/report_queue_screen.dart';
 
-/// Pantalla de inicio provisional: confirma la sesión y permite cerrarla (SCRUM-51).
-/// La reemplazará el mapa de eventos.
+/// Pestaña «Explorar»: saludo, accesos del equipo Festa y los planes cercanos en lista (los mismos del mapa).
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -58,15 +60,17 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+      body: RefreshIndicator(
+        onRefresh: () => ref.refresh(exploreEventsProvider.future),
+        child: ListView(
+          key: const Key('home.list'),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           children: [
             Text(
               account == null ? '' : 'Hola, ${account.displayName}',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             const LocationFallbackBanner(),
             // SCRUM-61: las cuentas del equipo Festa entran a la revisión de comercios (Figma 28).
             if (account?.role == Role.admin) ...[
@@ -88,6 +92,10 @@ class HomeScreen extends ConsumerWidget {
                 label: const Text('Reportes'),
               ),
             ],
+            const SizedBox(height: 24),
+            Text('Planes cerca de ti', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            const _NearbyEvents(),
           ],
         ),
       ),
@@ -108,4 +116,58 @@ class HomeScreen extends ConsumerWidget {
     );
     if (confirmed ?? false) await ref.read(sessionControllerProvider.notifier).logout();
   }
+}
+
+/// Los eventos cercanos en lista, con la misma fuente que el mapa (y su caché sin conexión).
+class _NearbyEvents extends ConsumerWidget {
+  const _NearbyEvents();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final explore = ref.watch(exploreEventsProvider);
+    return switch (explore) {
+      AsyncData(:final value) when value.events.isEmpty => _EmptyNearby(onAsk: () => context.push(Routes.chat)),
+      AsyncData(:final value) => Column(
+        key: const Key('home.events'),
+        children: [
+          for (final Event event in value.events)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: EventPreviewCard(event: event, onTap: () => context.push(Routes.eventDetail(event.id))),
+            ),
+        ],
+      ),
+      AsyncError() when !explore.isLoading => Column(
+        key: const Key('home.eventsError'),
+        children: [
+          const Text('No pudimos cargar los planes cercanos.'),
+          TextButton(onPressed: () => ref.invalidate(exploreEventsProvider), child: const Text('Reintentar')),
+        ],
+      ),
+      _ => const Padding(
+        padding: EdgeInsets.all(24),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+    };
+  }
+}
+
+class _EmptyNearby extends StatelessWidget {
+  const _EmptyNearby({required this.onAsk});
+
+  final VoidCallback onAsk;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    key: const Key('home.eventsEmpty'),
+    children: [
+      Text(
+        'Todavía no hay planes publicados cerca. Prueba con otro radio en el mapa o pregúntale a Festi.',
+        textAlign: TextAlign.center,
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+      ),
+      const SizedBox(height: 8),
+      TextButton.icon(onPressed: onAsk, icon: const Icon(Icons.auto_awesome), label: const Text('Hablar con Festi')),
+    ],
+  );
 }
