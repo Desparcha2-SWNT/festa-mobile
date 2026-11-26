@@ -14,6 +14,8 @@ import 'package:festa/features/location/domain/location_consent.dart';
 import 'package:festa/features/location/domain/user_location.dart';
 import 'package:festa/features/merchant/data/merchant_api.dart';
 import 'package:festa/features/merchant/domain/merchant_profile.dart';
+import 'package:festa/features/passes/data/passes_cache.dart';
+import 'package:festa/features/passes/domain/pass.dart';
 import 'package:festa/features/profile/data/profile_api.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -158,4 +160,47 @@ class InMemoryExploreCache implements ExploreCache {
   @override
   Future<void> save(List<Event> events, DateTime savedAt) async =>
       cached = CachedEvents(events: events, savedAt: savedAt);
+}
+
+/// Copia de «Mis entradas» en memoria (SCRUM-91), una por cuenta como la real.
+class InMemoryPassesCache implements PassesCache {
+  final copies = <String, CachedPasses>{};
+  final cleared = <String>[];
+  String? last;
+
+  /// Simula un teléfono que no deja guardar.
+  bool failSaves = false;
+
+  @override
+  Future<CachedPasses?> read(String accountId) async => copies[accountId];
+
+  @override
+  Future<CachedPasses?> readLast() async => last == null ? null : copies[last];
+
+  @override
+  Future<void> save(String accountId, List<Pass> passes, DateTime savedAt) async {
+    if (failSaves) throw StateError('almacenamiento no disponible');
+    copies[accountId] = CachedPasses(
+      accountId: accountId,
+      passes: [
+        for (final pass in passes)
+          if (pass.usable) pass,
+      ],
+      savedAt: savedAt,
+    );
+    last = accountId;
+  }
+
+  @override
+  Future<void> clear(String accountId) async {
+    cleared.add(accountId);
+    copies.remove(accountId);
+    if (last == accountId) last = null;
+  }
+
+  @override
+  Future<void> clearOthers(String accountId) async {
+    copies.removeWhere((id, _) => id != accountId);
+    if (last != accountId) last = null;
+  }
 }

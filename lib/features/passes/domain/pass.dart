@@ -54,6 +54,19 @@ class Pass {
   /// El texto firmado que se escanea en la entrada. Booking solo lo manda en un pase vigente.
   final String? qr;
 
+  /// El mismo formato que manda booking, para guardarlo en el teléfono (SCRUM-91).
+  Map<String, dynamic> toJson() => {
+    'passId': passId,
+    'eventId': eventId,
+    'eventTitle': eventTitle,
+    'status': status.name,
+    'source': ticket ? 'ticket' : 'rsvp',
+    'eventStartsAt': eventStartsAt?.toUtc().toIso8601String(),
+    'eventEndsAt': eventEndsAt?.toUtc().toIso8601String(),
+    'usedAt': usedAt?.toUtc().toIso8601String(),
+    'qr': qr,
+  };
+
   bool get eventEnded => eventEndsAt != null && eventEndsAt!.isBefore(DateTime.now());
 
   /// Se puede mostrar en la entrada: vigente, con QR y de un evento que no ha terminado.

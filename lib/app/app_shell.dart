@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/application/session_controller.dart';
 import '../features/auth/domain/account.dart';
 import '../features/events/application/events_providers.dart';
+import '../features/passes/application/passes_providers.dart';
 
 /// Ramas de la barra inferior, en el orden en que se declaran en el router.
 abstract final class ShellBranch {
@@ -44,6 +45,8 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // SCRUM-91: al entrar con sesión se refresca la copia de «Mis entradas» para la puerta del evento.
+    ref.listen(passesAutoSyncProvider, (_, _) {});
     final role = ref.watch(sessionControllerProvider.select((session) => session.value?.role));
     final tabs = role == Role.merchant ? _merchantTabs : _userTabs;
     final selected = tabs.indexWhere((tab) => tab.branch == navigationShell.currentIndex);

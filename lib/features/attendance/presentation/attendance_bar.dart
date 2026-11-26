@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/design/design.dart';
 import '../../../core/network/api_exception.dart';
 import '../../events/domain/event.dart';
+import '../../passes/application/passes_providers.dart';
 import '../application/attendance_providers.dart';
 
 /// SCRUM-70: «Confirmo que voy» en el detalle de un evento gratis, con los cupos ocupados.
@@ -26,10 +29,14 @@ class _AttendanceBarState extends ConsumerState<AttendanceBar> {
 
   Future<void> _run(Future<void> Function(AttendanceController c) action, String done) async {
     final messenger = ScaffoldMessenger.of(context);
+    // Se toma antes del `await`: si la persona sale del detalle mientras tanto, `ref` ya no se puede usar.
+    final passesSync = ref.read(passesSyncProvider);
     setState(() => _sending = true);
     try {
       await action(ref.read(attendanceControllerProvider(widget.event.id).notifier));
       messenger.showSnackBar(SnackBar(content: Text(done)));
+      // SCRUM-91: la entrada nueva (o cancelada) queda en la copia del teléfono sin abrir «Mis entradas».
+      unawaited(passesSync.refresh());
     } on ApiException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
     } finally {

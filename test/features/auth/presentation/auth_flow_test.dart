@@ -6,6 +6,8 @@ import 'package:festa/features/location/application/location_providers.dart';
 import 'package:festa/features/location/domain/location_consent.dart';
 import 'package:festa/features/merchant/application/merchant_providers.dart';
 import 'package:festa/features/merchant/domain/merchant_profile.dart';
+import 'package:festa/features/passes/data/passes_cache.dart';
+import 'package:festa/features/passes/domain/pass.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,6 +19,7 @@ void main() {
   late MockAuthApi api;
   late MockMerchantApi merchantApi;
   late InMemoryTokenStorage storage;
+  late InMemoryPassesCache passesCache;
 
   setUpAll(() {
     registerFallbackValue(AccountType.user);
@@ -27,6 +30,7 @@ void main() {
     api = MockAuthApi();
     merchantApi = MockMerchantApi();
     storage = InMemoryTokenStorage();
+    passesCache = InMemoryPassesCache();
   });
 
   Future<void> pumpApp(WidgetTester tester) async {
@@ -36,6 +40,7 @@ void main() {
           authApiProvider.overrideWithValue(api),
           merchantApiProvider.overrideWithValue(merchantApi),
           tokenStorageProvider.overrideWithValue(storage),
+          passesCacheProvider.overrideWithValue(passesCache),
           // La cuenta de prueba ya decidió sobre su ubicación: estas pruebas son del flujo de auth.
           locationConsentStoreProvider.overrideWithValue(
             InMemoryLocationConsentStore()
@@ -70,6 +75,59 @@ void main() {
     await pumpApp(tester);
 
     expect(find.text('Hola, Ana'), findsOneWidget);
+  });
+
+  testWidgets('si la app abre sin señal, desde el login se llega al QR guardado (SCRUM-91)', (tester) async {
+    storage.refreshToken = 'refresh-0';
+    when(() => api.refresh('refresh-0'))
+        .thenThrow(const ApiException(code: ApiException.networkError, message: 'Sin conexión.'));
+    await passesCache.save(testAccount.id, [
+      Pass(
+        passId: 'p1',
+        eventId: 'e1',
+        eventTitle: 'Noche de jazz',
+        status: PassStatus.valid,
+        ticket: false,
+        eventStartsAt: DateTime(2030, 11, 14, 15, 5),
+        eventEndsAt: DateTime(2030, 11, 14, 18, 5),
+        qr: 'FESTA1.qr',
+      ),
+    ], DateTime(2030, 11, 13, 20, 30));
+
+    await pumpApp(tester);
+    expect(find.text('Iniciar sesión'), findsOneWidget);
+    // El token sigue guardado para cuando vuelva la señal.
+    expect(storage.refreshToken, 'refresh-0');
+
+    await tester.ensureVisible(find.byKey(const Key('login.savedPasses')));
+    await tester.tap(find.byKey(const Key('login.savedPasses')));
+    await tester.pumpAndSettle();
+    expect(find.text('Mis entradas guardadas'), findsOneWidget);
+    expect(find.byKey(const Key('passes.offline')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('passes.item.p1')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('passes.qr')), findsOneWidget);
+  });
+
+  testWidgets('al entrar una cuenta se borran las entradas guardadas de otra (SCRUM-91)', (tester) async {
+    when(() => api.login(email: 'ana@escuelaing.edu.co', password: 'festa123')).thenAnswer((_) async => testSession());
+    await passesCache.save('otra-cuenta', [], DateTime(2030, 11, 13));
+
+    await pumpApp(tester);
+    await tester.enterText(find.byKey(const Key('login.email')), 'ana@escuelaing.edu.co');
+    await tester.enterText(find.byKey(const Key('login.password')), 'festa123');
+    await tester.ensureVisible(find.byKey(const Key('login.submit')));
+    await tester.tap(find.byKey(const Key('login.submit')));
+    await tester.pumpAndSettle();
+
+    expect(passesCache.copies.containsKey('otra-cuenta'), isFalse);
+  });
+
+  testWidgets('sin entradas guardadas el login no muestra el acceso', (tester) async {
+    await pumpApp(tester);
+
+    expect(find.byKey(const Key('login.savedPasses')), findsNothing);
   });
 
   testWidgets('una cuenta del equipo Festa ve la entrada a «Revisión de comercios» en el inicio (SCRUM-61)', (
@@ -162,6 +220,9 @@ void main() {
 
     verify(() => api.logout('refresh-1')).called(1);
     expect(storage.refreshToken, isNull);
+    // Las entradas guardadas para usar sin conexión se borran del teléfono (SCRUM-91): antes de publicar la
+    // sesión nula y otra vez después, por si una descarga alcanzó a guardar en medio. Solo la cuenta que salió.
+    expect(passesCache.cleared, [testAccount.id, testAccount.id]);
     expect(find.text('Iniciar sesión'), findsOneWidget);
   });
 
