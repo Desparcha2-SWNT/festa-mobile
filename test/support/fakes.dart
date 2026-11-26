@@ -3,9 +3,31 @@ import 'package:festa/features/auth/data/auth_api.dart';
 import 'package:festa/features/auth/data/token_storage.dart';
 import 'package:festa/features/auth/domain/account.dart';
 import 'package:festa/features/auth/domain/auth_session.dart';
+import 'package:festa/features/events/data/events_api.dart';
+import 'package:festa/features/events/data/explore_cache.dart';
+import 'package:festa/features/events/domain/event.dart';
+import 'package:festa/features/location/data/consents_api.dart';
+import 'package:festa/features/location/data/device_location.dart';
+import 'package:festa/features/location/data/location_consent_store.dart';
+import 'package:festa/features/location/domain/geo_point.dart';
+import 'package:festa/features/location/domain/location_consent.dart';
+import 'package:festa/features/location/domain/user_location.dart';
+import 'package:festa/features/merchant/data/merchant_api.dart';
+import 'package:festa/features/merchant/domain/merchant_profile.dart';
+import 'package:festa/features/passes/data/passes_cache.dart';
+import 'package:festa/features/passes/domain/pass.dart';
+import 'package:festa/features/profile/data/profile_api.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockAuthApi extends Mock implements AuthApi {}
+
+class MockConsentsApi extends Mock implements ConsentsApi {}
+
+class MockMerchantApi extends Mock implements MerchantApi {}
+
+class MockEventsApi extends Mock implements EventsApi {}
+
+class MockProfileApi extends Mock implements ProfileApi {}
 
 class InMemoryTokenStorage implements TokenStorage {
   InMemoryTokenStorage([this.refreshToken]);
@@ -24,8 +46,16 @@ class InMemoryTokenStorage implements TokenStorage {
 
 const testAccount = Account(id: 'a1', email: 'ana@escuelaing.edu.co', displayName: 'Ana', role: Role.user);
 
-AuthSession testSession([String suffix = '1']) =>
-    AuthSession(accessToken: 'access-$suffix', refreshToken: 'refresh-$suffix', account: testAccount);
+AuthSession testSession([String suffix = '1', Account account = testAccount]) =>
+    AuthSession(accessToken: 'access-$suffix', refreshToken: 'refresh-$suffix', account: account);
+
+/// Cuenta registrada como comercio (rol `merchant`); su perfil puede estar pendiente o verificado.
+const testMerchantAccount = Account(
+  id: 'm1',
+  email: 'mecanica@escuelaing.edu.co',
+  displayName: 'Programa de Ingeniería Mecánica',
+  role: Role.merchant,
+);
 
 const invalidRefresh = ApiException(
   code: 'INVALID_REFRESH_TOKEN',
@@ -34,3 +64,143 @@ const invalidRefresh = ApiException(
 );
 
 const networkFailure = ApiException(code: ApiException.networkError, message: 'Sin conexión');
+
+class InMemoryLocationConsentStore implements LocationConsentStore {
+  final Map<String, StoredLocationConsent> consents = {};
+
+  @override
+  Future<StoredLocationConsent?> read(String accountId) async => consents[accountId];
+
+  @override
+  Future<void> save(String accountId, StoredLocationConsent consent) async => consents[accountId] = consent;
+}
+
+/// Ubicación del dispositivo simulada: devuelve [position] o, si se da [failure], falla con esa razón.
+class FakeDeviceLocation implements DeviceLocation {
+  FakeDeviceLocation({this.position = testDevicePoint, this.failure});
+
+  final GeoPoint position;
+  final LocationFallbackReason? failure;
+  int calls = 0;
+
+  @override
+  Future<GeoPoint> currentPosition() async {
+    calls++;
+    if (failure case final reason?) throw LocationUnavailableException(reason);
+    return position;
+  }
+}
+
+const testDevicePoint = GeoPoint(latitude: 4.65, longitude: -74.06);
+
+/// Evento tal como lo devuelve event-service (`toApi`).
+Map<String, dynamic> eventJson({
+  String id = 'e1',
+  String title = '10ª Feria del Autómata',
+  String category = 'musical',
+  bool ticketed = false,
+  int priceCents = 0,
+  bool aiDescription = true,
+}) => {
+  'eventId': id,
+  'organizerId': 'o1',
+  'organizerType': ticketed ? 'merchant' : 'user',
+  'organizerName': 'Programa de Ingeniería Mecánica',
+  'title': title,
+  'description': 'Muestra de autómatas que dan vida a la literatura colombiana.',
+  'descriptionAiGenerated': aiDescription,
+  'category': category,
+  'tags': <String>[],
+  'startsAt': '2026-11-12T13:30:00.000Z',
+  'endsAt': '2026-11-12T16:30:00.000Z',
+  'venue': {
+    'name': 'Bloque I',
+    'address': 'AK 45 #205-59',
+    'location': {'lat': 4.7829, 'lng': -74.0421},
+  },
+  'capacity': 30,
+  'ticketed': ticketed,
+  'priceCents': priceCents,
+  'currency': 'COP',
+  'featured': false,
+  'isLive': false,
+  'coverImageUrl': null,
+  'status': 'published',
+};
+
+Event testEvent({String id = 'e1', String title = '10ª Feria del Autómata', String category = 'musical'}) =>
+    Event.fromJson(eventJson(id: id, title: title, category: category));
+
+const testMerchantDraft = MerchantDraft(
+  businessName: 'Programa de Ingeniería Mecánica',
+  category: MerchantCategory.cultural,
+  address: 'Escuela Colombiana de Ingeniería, Bogotá',
+  location: GeoPoint(latitude: 4.7829, longitude: -74.0421),
+  description: 'Encuentro semestral del programa.',
+);
+
+MerchantProfile testMerchantProfile(MerchantStatus status, {String? rejectionReason, bool suspended = false}) =>
+    MerchantProfile(draft: testMerchantDraft, status: status, rejectionReason: rejectionReason, suspended: suspended);
+
+const merchantSession = AuthSession(
+  accessToken: 'access-m',
+  refreshToken: 'refresh-m',
+  account: Account(id: 'm1', email: 'ana@escuelaing.edu.co', displayName: 'Ana', role: Role.merchant),
+);
+
+/// Caché del mapa en memoria (SCRUM-140).
+class InMemoryExploreCache implements ExploreCache {
+  InMemoryExploreCache([this.cached]);
+
+  CachedEvents? cached;
+
+  @override
+  Future<CachedEvents?> read() async => cached;
+
+  @override
+  Future<void> save(List<Event> events, DateTime savedAt) async =>
+      cached = CachedEvents(events: events, savedAt: savedAt);
+}
+
+/// Copia de «Mis entradas» en memoria (SCRUM-91), una por cuenta como la real.
+class InMemoryPassesCache implements PassesCache {
+  final copies = <String, CachedPasses>{};
+  final cleared = <String>[];
+  String? last;
+
+  /// Simula un teléfono que no deja guardar.
+  bool failSaves = false;
+
+  @override
+  Future<CachedPasses?> read(String accountId) async => copies[accountId];
+
+  @override
+  Future<CachedPasses?> readLast() async => last == null ? null : copies[last];
+
+  @override
+  Future<void> save(String accountId, List<Pass> passes, DateTime savedAt) async {
+    if (failSaves) throw StateError('almacenamiento no disponible');
+    copies[accountId] = CachedPasses(
+      accountId: accountId,
+      passes: [
+        for (final pass in passes)
+          if (pass.usable) pass,
+      ],
+      savedAt: savedAt,
+    );
+    last = accountId;
+  }
+
+  @override
+  Future<void> clear(String accountId) async {
+    cleared.add(accountId);
+    copies.remove(accountId);
+    if (last == accountId) last = null;
+  }
+
+  @override
+  Future<void> clearOthers(String accountId) async {
+    copies.removeWhere((id, _) => id != accountId);
+    if (last != accountId) last = null;
+  }
+}

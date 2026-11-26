@@ -24,6 +24,10 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Festa usa la cámara para escanear el QR de las entradas en la puerta de tus eventos.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Festa usa tu ubicación mientras usas la app para mostrarte eventos cercanos.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

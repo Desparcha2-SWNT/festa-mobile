@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:festa/core/network/api_exception.dart';
 import 'package:festa/features/auth/data/auth_repository.dart';
+import 'package:festa/features/auth/domain/auth_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -33,6 +34,55 @@ void main() {
     expect(account.displayName, 'Ana');
     expect(repository.accessToken, 'access-1');
     expect(storage.refreshToken, 'refresh-1');
+  });
+
+  group('el cambio de sesión durante una renovación en vuelo', () {
+    late Completer<AuthSession> pending;
+
+    setUp(() {
+      storage.refreshToken = 'refresh-0';
+      pending = Completer<AuthSession>();
+      when(() => api.refresh('refresh-0')).thenAnswer((_) => pending.future);
+      when(() => api.logout(any())).thenAnswer((_) async {});
+      when(
+        () => api.login(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer((_) async => testSession('b', testMerchantAccount));
+    });
+
+    Future<void> switchToB() async {
+      await repository.logout();
+      await repository.login(email: 'b@escuelaing.edu.co', password: 'secreta123');
+    }
+
+    test('la renovación tardía de la cuenta anterior no restaura sus tokens ni su cuenta', () async {
+      final renewal = repository.refresh(); // renovación de la cuenta A, todavía en vuelo
+      await switchToB();
+
+      pending.complete(testSession('a')); // llega tarde
+      expect(await renewal, isNull);
+
+      expect(repository.accountId, testMerchantAccount.id);
+      expect(repository.accessToken, 'access-b');
+      expect(storage.refreshToken, 'refresh-b');
+    });
+
+    test('un error de la renovación anterior no cierra la sesión nueva ni avisa que expiró', () async {
+      var expired = 0;
+      repository.sessionExpired.listen((_) => expired++);
+      final renewal = repository.refresh();
+      await switchToB();
+
+      pending.completeError(invalidRefresh);
+      expect(await renewal, isNull);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(repository.accountId, testMerchantAccount.id);
+      expect(storage.refreshToken, 'refresh-b');
+      expect(expired, 0);
+    });
   });
 
   test('restore no llama al servidor si no hay sesión guardada', () async {

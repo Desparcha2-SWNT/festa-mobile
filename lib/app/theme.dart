@@ -1,16 +1,98 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-/// Tema base de Festa. Centraliza colores y estilos para que las pantallas no los repitan.
+import 'design/design.dart';
+
+/// Tema base de Festa, construido con los tokens del Figma (`lib/app/design/`).
+/// Las pantallas no deben repetir colores ni estilos: usan este tema y los tokens.
 abstract final class FestaTheme {
-  static const _seed = Color(0xFFE4572E);
+  /// Magenta principal (#F0127E). Se conserva por compatibilidad: prefiere [FestaColors.bgBrand].
+  static const primary = FestaColors.bgBrand;
+
+  /// Tinta (#111111). Se conserva por compatibilidad: prefiere [FestaColors.textPrimary].
+  static const ink = FestaColors.textPrimary;
+
+  /// Magenta de marca. Alias de [primary] que usan las pantallas del mapa y los eventos.
+  static const brand = FestaColors.bgBrand;
+
+  /// Fondo de los avisos informativos («IA / Festi» en el Figma).
+  static const infoSurface = FestaColors.bgIa;
 
   static ThemeData light() => _build(Brightness.light);
 
+  // El Figma solo define el modo claro; el oscuro queda pendiente. Mientras tanto la app siempre usa el claro.
   static ThemeData dark() => _build(Brightness.dark);
 
-  static ThemeData _build(Brightness brightness) => ThemeData(
-    colorScheme: ColorScheme.fromSeed(seedColor: _seed, brightness: brightness),
-    inputDecorationTheme: const InputDecorationTheme(border: OutlineInputBorder()),
-    filledButtonTheme: FilledButtonThemeData(style: FilledButton.styleFrom(minimumSize: const Size(64, 48))),
-  );
+  static ThemeData _build(Brightness brightness) {
+    final scheme = ColorScheme.fromSeed(seedColor: FestaColors.bgBrand, brightness: brightness).copyWith(
+      primary: FestaColors.bgBrand,
+      onPrimary: FestaColors.textOnBrand,
+      primaryContainer: FestaColors.bgBrandSoft,
+      onPrimaryContainer: FestaColors.textBrand,
+      tertiary: FestaColors.success,
+      error: FestaColors.error,
+    );
+    OutlineInputBorder border(Color color, [double width = 1]) => OutlineInputBorder(
+      borderRadius: FestaRadius.mdAll,
+      borderSide: BorderSide(color: color, width: width),
+    );
+    return ThemeData(
+      fontFamily: FestaText.bodyFont,
+      textTheme: FestaText.textTheme,
+      colorScheme: scheme,
+      scaffoldBackgroundColor: FestaColors.bg,
+      inputDecorationTheme: InputDecorationTheme(
+        border: border(FestaColors.border),
+        enabledBorder: border(FestaColors.border),
+        focusedBorder: border(FestaColors.borderBrand, 2),
+        errorBorder: border(FestaColors.error),
+        focusedErrorBorder: border(FestaColors.error, 2),
+        filled: true,
+        fillColor: FestaColors.bg,
+        labelStyle: FestaText.bodyL.copyWith(color: FestaColors.textSecondary),
+        hintStyle: FestaText.bodyL.copyWith(color: FestaColors.textDisabled),
+        errorStyle: FestaText.caption.copyWith(color: FestaColors.textError),
+        contentPadding: const EdgeInsets.symmetric(horizontal: FestaSpace.md, vertical: 14),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(64, 52),
+          backgroundColor: FestaColors.bgBrand,
+          foregroundColor: FestaColors.textOnBrand, // negro sobre magenta (AA)
+          disabledBackgroundColor: FestaColors.bgMuted,
+          disabledForegroundColor: FestaColors.textDisabled,
+          shape: const StadiumBorder(),
+          textStyle: FestaText.labelL,
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(64, 52),
+          foregroundColor: FestaColors.textPrimary,
+          side: const BorderSide(color: FestaColors.border, width: 1.5),
+          shape: const StadiumBorder(),
+          textStyle: FestaText.labelL,
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(foregroundColor: FestaColors.textBrand, textStyle: FestaText.labelM),
+      ),
+      // Movimiento (ver design/motion.dart): las pantallas entran con un fundido hacia adelante en Android y
+      // con el deslizamiento nativo en iOS. Los avisos flotan en vez de pegarse al borde.
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        },
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: FestaColors.bgInverse,
+        contentTextStyle: FestaText.bodyM.copyWith(color: FestaColors.textOnInverse),
+        actionTextColor: FestaPalette.magenta100,
+        shape: RoundedRectangleBorder(borderRadius: FestaRadius.mdAll),
+        insetPadding: const EdgeInsets.all(FestaSpace.md),
+      ),
+    );
+  }
 }

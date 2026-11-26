@@ -2,6 +2,12 @@ import 'package:festa/app/festa_app.dart';
 import 'package:festa/core/network/api_exception.dart';
 import 'package:festa/features/auth/application/auth_providers.dart';
 import 'package:festa/features/auth/domain/account.dart';
+import 'package:festa/features/location/application/location_providers.dart';
+import 'package:festa/features/location/domain/location_consent.dart';
+import 'package:festa/features/merchant/application/merchant_providers.dart';
+import 'package:festa/features/merchant/domain/merchant_profile.dart';
+import 'package:festa/features/passes/data/passes_cache.dart';
+import 'package:festa/features/passes/domain/pass.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,22 +17,41 @@ import '../../../support/fakes.dart';
 
 void main() {
   late MockAuthApi api;
+  late MockMerchantApi merchantApi;
   late InMemoryTokenStorage storage;
+  late InMemoryPassesCache passesCache;
 
-  setUpAll(() => registerFallbackValue(AccountType.user));
+  setUpAll(() {
+    registerFallbackValue(AccountType.user);
+    registerFallbackValue(testMerchantDraft);
+  });
 
   setUp(() {
     api = MockAuthApi();
+    merchantApi = MockMerchantApi();
     storage = InMemoryTokenStorage();
+    passesCache = InMemoryPassesCache();
   });
 
   Future<void> pumpApp(WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [authApiProvider.overrideWithValue(api), tokenStorageProvider.overrideWithValue(storage)],
+        overrides: [
+          authApiProvider.overrideWithValue(api),
+          merchantApiProvider.overrideWithValue(merchantApi),
+          tokenStorageProvider.overrideWithValue(storage),
+          passesCacheProvider.overrideWithValue(passesCache),
+          // La cuenta de prueba ya decidió sobre su ubicación: estas pruebas son del flujo de auth.
+          locationConsentStoreProvider.overrideWithValue(
+            InMemoryLocationConsentStore()
+              ..consents[testAccount.id] = const StoredLocationConsent(decision: LocationConsent.granted, synced: true),
+          ),
+          deviceLocationProvider.overrideWithValue(FakeDeviceLocation()),
+        ],
         child: const FestaApp(),
       ),
     );
+    await tester.pump(const Duration(milliseconds: 100));
     await tester.pumpAndSettle();
   }
 
@@ -40,7 +65,7 @@ void main() {
   testWidgets('sin sesión guardada abre el login', (tester) async {
     await pumpApp(tester);
 
-    expect(find.text('Inicia sesión'), findsOneWidget);
+    expect(find.text('Iniciar sesión'), findsOneWidget);
   });
 
   testWidgets('con sesión guardada entra directo al inicio', (tester) async {
@@ -52,9 +77,85 @@ void main() {
     expect(find.text('Hola, Ana'), findsOneWidget);
   });
 
+  testWidgets('si la app abre sin señal, desde el login se llega al QR guardado (SCRUM-91)', (tester) async {
+    storage.refreshToken = 'refresh-0';
+    when(() => api.refresh('refresh-0'))
+        .thenThrow(const ApiException(code: ApiException.networkError, message: 'Sin conexión.'));
+    await passesCache.save(testAccount.id, [
+      Pass(
+        passId: 'p1',
+        eventId: 'e1',
+        eventTitle: 'Noche de jazz',
+        status: PassStatus.valid,
+        ticket: false,
+        eventStartsAt: DateTime(2030, 11, 14, 15, 5),
+        eventEndsAt: DateTime(2030, 11, 14, 18, 5),
+        qr: 'FESTA1.qr',
+      ),
+    ], DateTime(2030, 11, 13, 20, 30));
+
+    await pumpApp(tester);
+    expect(find.text('Iniciar sesión'), findsOneWidget);
+    // El token sigue guardado para cuando vuelva la señal.
+    expect(storage.refreshToken, 'refresh-0');
+
+    await tester.ensureVisible(find.byKey(const Key('login.savedPasses')));
+    await tester.tap(find.byKey(const Key('login.savedPasses')));
+    await tester.pumpAndSettle();
+    expect(find.text('Mis entradas guardadas'), findsOneWidget);
+    expect(find.byKey(const Key('passes.offline')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('passes.item.p1')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('passes.qr')), findsOneWidget);
+  });
+
+  testWidgets('al entrar una cuenta se borran las entradas guardadas de otra (SCRUM-91)', (tester) async {
+    when(() => api.login(email: 'ana@escuelaing.edu.co', password: 'festa123')).thenAnswer((_) async => testSession());
+    await passesCache.save('otra-cuenta', [], DateTime(2030, 11, 13));
+
+    await pumpApp(tester);
+    await tester.enterText(find.byKey(const Key('login.email')), 'ana@escuelaing.edu.co');
+    await tester.enterText(find.byKey(const Key('login.password')), 'festa123');
+    await tester.ensureVisible(find.byKey(const Key('login.submit')));
+    await tester.tap(find.byKey(const Key('login.submit')));
+    await tester.pumpAndSettle();
+
+    expect(passesCache.copies.containsKey('otra-cuenta'), isFalse);
+  });
+
+  testWidgets('sin entradas guardadas el login no muestra el acceso', (tester) async {
+    await pumpApp(tester);
+
+    expect(find.byKey(const Key('login.savedPasses')), findsNothing);
+  });
+
+  testWidgets('una cuenta del equipo Festa ve la entrada a «Revisión de comercios» en el inicio (SCRUM-61)', (
+    tester,
+  ) async {
+    storage.refreshToken = 'refresh-0';
+    const admin = Account(id: 'a1', email: 'equipo@escuelaing.edu.co', displayName: 'Ana', role: Role.admin);
+    when(() => api.refresh('refresh-0')).thenAnswer((_) async => testSession('1', admin));
+
+    await pumpApp(tester);
+
+    expect(find.byKey(const Key('home.team')), findsOneWidget);
+  });
+
+  testWidgets('una cuenta normal no ve la entrada del equipo', (tester) async {
+    storage.refreshToken = 'refresh-0';
+    when(() => api.refresh('refresh-0')).thenAnswer((_) async => testSession());
+
+    await pumpApp(tester);
+
+    expect(find.text('Hola, Ana'), findsOneWidget);
+    expect(find.byKey(const Key('home.team')), findsNothing);
+  });
+
   testWidgets('el login valida el formulario antes de llamar al servidor', (tester) async {
     await pumpApp(tester);
 
+    await tester.ensureVisible(find.byKey(const Key('login.submit')));
     await tester.tap(find.byKey(const Key('login.submit')));
     await tester.pump();
 
@@ -70,6 +171,7 @@ void main() {
   testWidgets('tras un envío fallido los errores se actualizan al escribir', (tester) async {
     await pumpApp(tester);
 
+    await tester.ensureVisible(find.byKey(const Key('login.submit')));
     await tester.tap(find.byKey(const Key('login.submit')));
     await tester.pump();
     expect(find.text('El correo es obligatorio.'), findsOneWidget);
@@ -91,11 +193,12 @@ void main() {
 
     await tester.enterText(find.byKey(const Key('login.email')), 'ana@escuelaing.edu.co');
     await tester.enterText(find.byKey(const Key('login.password')), 'otra1234');
+    await tester.ensureVisible(find.byKey(const Key('login.submit')));
     await tester.tap(find.byKey(const Key('login.submit')));
     await tester.pumpAndSettle();
 
     expect(find.text('Correo o contraseña incorrectos.'), findsOneWidget);
-    expect(find.text('Inicia sesión'), findsOneWidget);
+    expect(find.text('Iniciar sesión'), findsOneWidget);
   });
 
   testWidgets('login y logout completos', (tester) async {
@@ -105,6 +208,7 @@ void main() {
 
     await tester.enterText(find.byKey(const Key('login.email')), 'ana@escuelaing.edu.co');
     await tester.enterText(find.byKey(const Key('login.password')), 'festa123');
+    await tester.ensureVisible(find.byKey(const Key('login.submit')));
     await tester.tap(find.byKey(const Key('login.submit')));
     await tester.pumpAndSettle();
     expect(find.text('Hola, Ana'), findsOneWidget);
@@ -116,7 +220,10 @@ void main() {
 
     verify(() => api.logout('refresh-1')).called(1);
     expect(storage.refreshToken, isNull);
-    expect(find.text('Inicia sesión'), findsOneWidget);
+    // Las entradas guardadas para usar sin conexión se borran del teléfono (SCRUM-91): antes de publicar la
+    // sesión nula y otra vez después, por si una descarga alcanzó a guardar en medio. Solo la cuenta que salió.
+    expect(passesCache.cleared, [testAccount.id, testAccount.id]);
+    expect(find.text('Iniciar sesión'), findsOneWidget);
   });
 
   testWidgets('el registro muestra que el correo ya existe', (tester) async {
@@ -126,12 +233,12 @@ void main() {
         password: any(named: 'password'),
         displayName: any(named: 'displayName'),
         accountType: any(named: 'accountType'),
-        acceptedPrivacyPolicy: any(named: 'acceptedPrivacyPolicy'),
       ),
     ).thenThrow(
       const ApiException(code: 'EMAIL_TAKEN', message: 'Ya existe una cuenta con ese correo.', statusCode: 409),
     );
     await pumpApp(tester);
+    await tester.ensureVisible(find.text('¿No tienes cuenta? Regístrate'));
     await tester.tap(find.text('¿No tienes cuenta? Regístrate'));
     await tester.pumpAndSettle();
 
@@ -145,6 +252,7 @@ void main() {
 
   testWidgets('el registro no se envía si no se autoriza el tratamiento de datos', (tester) async {
     await pumpApp(tester);
+    await tester.ensureVisible(find.text('¿No tienes cuenta? Regístrate'));
     await tester.tap(find.text('¿No tienes cuenta? Regístrate'));
     await tester.pumpAndSettle();
 
@@ -160,30 +268,46 @@ void main() {
         password: any(named: 'password'),
         displayName: any(named: 'displayName'),
         accountType: any(named: 'accountType'),
-        acceptedPrivacyPolicy: any(named: 'acceptedPrivacyPolicy'),
       ),
     );
   });
 
-  testWidgets('el registro exitoso entra al inicio con el tipo de cuenta elegido', (tester) async {
-    when(
-      () => api.register(
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-        displayName: any(named: 'displayName'),
-        accountType: any(named: 'accountType'),
-        acceptedPrivacyPolicy: any(named: 'acceptedPrivacyPolicy'),
-      ),
-    ).thenAnswer((_) async => testSession());
+  Future<void> fillMerchantWizard(WidgetTester tester) async {
     await pumpApp(tester);
+    await tester.ensureVisible(find.text('¿No tienes cuenta? Regístrate'));
     await tester.tap(find.text('¿No tienes cuenta? Regístrate'));
     await tester.pumpAndSettle();
-
+    await tester.ensureVisible(find.text('Comercio'));
     await tester.tap(find.text('Comercio'));
     await _fillRegister(tester);
+    await tester.ensureVisible(find.byKey(const Key('register.next1')));
+    await tester.tap(find.byKey(const Key('register.next1')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('register.address')), 'Calle 205 # 59-00, Bogotá');
+    await tester.tap(find.byKey(const Key('register.category.Cultural')));
+    await tester.ensureVisible(find.byKey(const Key('register.next2')));
+    await tester.tap(find.byKey(const Key('register.next2')));
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const Key('register.submit')));
     await tester.tap(find.byKey(const Key('register.submit')));
     await tester.pumpAndSettle();
+  }
+
+  void stubMerchantRegister() => when(
+    () => api.register(
+      email: any(named: 'email'),
+      password: any(named: 'password'),
+      displayName: any(named: 'displayName'),
+      accountType: any(named: 'accountType'),
+    ),
+  ).thenAnswer((_) async => merchantSession);
+
+  testWidgets('el registro de comercio crea la cuenta, envía la solicitud y llega a la verificación', (tester) async {
+    stubMerchantRegister();
+    when(() => merchantApi.submit(any())).thenAnswer((_) async => testMerchantProfile(MerchantStatus.pending));
+    when(() => merchantApi.mine()).thenAnswer((_) async => testMerchantProfile(MerchantStatus.pending));
+
+    await fillMerchantWizard(tester);
 
     verify(
       () => api.register(
@@ -191,10 +315,42 @@ void main() {
         password: 'festa123',
         displayName: 'Ana',
         accountType: AccountType.merchant,
-        acceptedPrivacyPolicy: true,
       ),
     ).called(1);
-    expect(find.text('Hola, Ana'), findsOneWidget);
+    final draft = verify(() => merchantApi.submit(captureAny())).captured.single as MerchantDraft;
+    expect(draft.businessName, 'Ana');
+    expect(draft.category, MerchantCategory.cultural);
+    expect(draft.address, 'Calle 205 # 59-00, Bogotá');
+    expect(find.byKey(const Key('merchant.status.title')), findsOneWidget);
+    expect(find.text('Estamos revisando tu perfil'), findsOneWidget);
+  });
+
+  testWidgets('si la solicitud falla, se queda en el registro y al reintentar no repite la cuenta', (tester) async {
+    stubMerchantRegister();
+    var attempts = 0;
+    when(() => merchantApi.submit(any())).thenAnswer((_) async {
+      if (++attempts == 1) throw networkFailure;
+      return testMerchantProfile(MerchantStatus.pending);
+    });
+    when(() => merchantApi.mine()).thenAnswer((_) async => testMerchantProfile(MerchantStatus.pending));
+
+    await fillMerchantWizard(tester);
+    expect(find.byKey(const Key('merchant.status.title')), findsNothing);
+    expect(find.byKey(const Key('register.submit')), findsOneWidget);
+
+    await tester.ensureVisible(find.byKey(const Key('register.submit')));
+    await tester.tap(find.byKey(const Key('register.submit')));
+    await tester.pumpAndSettle();
+
+    verify(
+      () => api.register(
+        email: any(named: 'email'),
+        password: any(named: 'password'),
+        displayName: any(named: 'displayName'),
+        accountType: any(named: 'accountType'),
+      ),
+    ).called(1);
+    expect(find.byKey(const Key('merchant.status.title')), findsOneWidget);
   });
 }
 
