@@ -68,6 +68,13 @@ void main() {
     expect(find.text('Iniciar sesión'), findsOneWidget);
   });
 
+  testWidgets('el login no ofrece Google: quedó fuera del MVP (SCRUM-136)', (tester) async {
+    await pumpApp(tester);
+
+    expect(find.text('Continuar con Google'), findsNothing);
+    expect(find.byKey(const Key('login.google')), findsNothing);
+  });
+
   testWidgets('con sesión guardada entra directo al inicio', (tester) async {
     storage.refreshToken = 'refresh-0';
     when(() => api.refresh('refresh-0')).thenAnswer((_) async => testSession());
