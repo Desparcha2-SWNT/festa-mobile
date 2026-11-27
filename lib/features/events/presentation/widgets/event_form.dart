@@ -268,15 +268,18 @@ class _EventFormState extends State<EventForm> {
                   validator: (value) => _required(value, 'Cuéntale a la gente de qué se trata el plan.'),
                   decoration: const InputDecoration(labelText: 'Descripción', alignLabelWithHint: true),
                 ),
-                const SizedBox(height: 8),
-                AiDescriptionAssistant(
-                  buildRequest: _descriptionRequest,
-                  generated: _aiGenerated,
-                  onGenerated: (text) => setState(() {
-                    _description.text = text;
-                    _aiGenerated = true;
-                  }),
-                ),
+                // RF9: solo un comercio pide descripciones con IA; sin comercio, ai-service responde 403.
+                if (widget.merchantId != null) ...[
+                  const SizedBox(height: 8),
+                  AiDescriptionAssistant(
+                    buildRequest: _descriptionRequest,
+                    generated: _aiGenerated,
+                    onGenerated: (text) => setState(() {
+                      _description.text = text;
+                      _aiGenerated = true;
+                    }),
+                  ),
+                ],
               ],
             ),
           ),

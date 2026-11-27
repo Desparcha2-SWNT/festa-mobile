@@ -1,9 +1,12 @@
 import 'package:festa/app/routes.dart';
 import 'package:festa/core/network/api_exception.dart';
+import 'package:festa/features/auth/application/session_controller.dart';
+import 'package:festa/features/auth/domain/account.dart';
 import 'package:festa/features/events/application/events_providers.dart';
 import 'package:festa/features/events/domain/event.dart';
 import 'package:festa/features/events/presentation/edit_event_screen.dart';
 import 'package:festa/features/events/presentation/my_events_screen.dart';
+import 'package:festa/features/events/presentation/widgets/ai_description_assistant.dart';
 import 'package:festa/features/location/application/user_location_provider.dart';
 import 'package:festa/features/location/domain/user_location.dart';
 import 'package:festa/features/map/presentation/map_view.dart';
@@ -18,12 +21,17 @@ import '../../../support/fakes.dart';
 /// Evento publicado y vigente (fechas lejanas para que la prueba no dependa del día en que corre).
 // En hora local, para que no cruce la medianoche en ninguna zona horaria (el CI corre en UTC):
 // el formulario solo admite eventos que empiezan y terminan el mismo día.
-Event upcomingEvent({String status = 'published'}) => Event.fromJson({
-  ...eventJson(),
+Event upcomingEvent({String status = 'published', bool ticketed = false}) => Event.fromJson({
+  ...eventJson(ticketed: ticketed),
   'startsAt': DateTime(2099, 1, 1, 18).toUtc().toIso8601String(),
   'endsAt': DateTime(2099, 1, 1, 21).toUtc().toIso8601String(),
   'status': status,
 });
+
+class _SignedInMerchant extends SessionController {
+  @override
+  Future<Account?> build() async => testMerchantAccount;
+}
 
 void main() {
   late MockEventsApi api;
@@ -57,6 +65,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sessionControllerProvider.overrideWith(_SignedInMerchant.new),
           eventsApiProvider.overrideWithValue(api),
           nearbyEventsProvider.overrideWith((ref) async => <Event>[]),
           userLocationProvider.overrideWith((ref) async => const UserLocation.device(testDevicePoint)),
@@ -143,6 +152,18 @@ void main() {
 
     verifyNever(() => api.cancel(any(), reason: any(named: 'reason')));
     expect(find.text('Editar evento'), findsOneWidget);
+  });
+
+  // RF9 es solo para comercios: ai-service responde 403 sin un comercio verificado, así que el botón no se ofrece.
+  testWidgets('editar un evento de usuario no ofrece el asistente de IA', (tester) async {
+    await pumpApp(tester);
+    expect(find.byType(AiDescriptionAssistant, skipOffstage: false), findsNothing);
+  });
+
+  testWidgets('editar un evento de comercio ofrece el asistente de IA', (tester) async {
+    when(() => api.byId('e1')).thenAnswer((_) async => upcomingEvent(ticketed: true));
+    await pumpApp(tester);
+    expect(find.byType(AiDescriptionAssistant, skipOffstage: false), findsOneWidget);
   });
 
   testWidgets('un evento cancelado ya no se puede editar', (tester) async {
