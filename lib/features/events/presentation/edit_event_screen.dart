@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/routes.dart';
 import '../../../app/theme.dart';
 import '../../../core/network/api_exception.dart';
+import '../../auth/application/session_controller.dart';
 import '../application/events_providers.dart';
 import '../domain/event.dart';
 import '../domain/event_draft.dart';
@@ -109,8 +110,11 @@ class _EditFormState extends ConsumerState<_EditForm> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // RF9 es solo para comercios: el comercio es el de la cuenta (uno por cuenta), igual que al crear.
+    final accountId = ref.watch(sessionControllerProvider.select((session) => session.value?.id));
     return EventForm(
       initial: _original,
+      merchantId: widget.event.organizerIsMerchant ? accountId : null,
       submitLabel: 'Guardar cambios',
       submitting: _busy,
       onSubmit: _save,
