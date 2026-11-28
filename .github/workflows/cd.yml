@@ -38,8 +38,11 @@ on:
         required: false
         type: string
 
+# Solo lectura por defecto: el job que compila ejecuta código del repo (Gradle, Dart y sus
+# dependencias), también en los PR, así que no debe tener un token capaz de crear tags o releases.
+# El permiso de escritura vive solo en el job «publicar», que corre en main y no hace checkout.
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: cd-${{ github.ref }}
@@ -49,6 +52,13 @@ jobs:
   apk:
     name: Build y publicar APK
     runs-on: ubuntu-latest
+    outputs:
+      publicar: ${{ steps.publicar.outputs.si }}
+      nombre: ${{ steps.artefacto.outputs.nombre }}
+      tag: ${{ steps.artefacto.outputs.tag }}
+      version: ${{ steps.artefacto.outputs.version }}
+      sha256: ${{ steps.artefacto.outputs.sha256 }}
+      fecha: ${{ steps.artefacto.outputs.fecha }}
     steps:
       - uses: actions/checkout@v4
 
@@ -167,49 +177,71 @@ jobs:
             echo "fecha=$fecha"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Subir el APK como artefacto del build (sin publicar)
-        if: steps.publicar.outputs.si != 'true'
+      # Siempre se sube como artefacto: en un PR es el resultado del build; al publicar, el job
+      # «publicar» lo toma de aquí sin volver a compilar ni a ejecutar código del repo.
+      - name: Subir el APK como artefacto del build
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.artefacto.outputs.nombre }}
-          path: ${{ steps.artefacto.outputs.nombre }}
+          name: apk
+          path: |
+            ${{ steps.artefacto.outputs.nombre }}
+            version.json
           retention-days: 14
+
+  publicar:
+    name: Publicar el release
+    needs: apk
+    if: needs.apk.outputs.publicar == 'true'
+    runs-on: ubuntu-latest
+    # Único job con escritura: crea el tag y el release. No hace checkout ni compila, así que ningún
+    # código del repo corre con este token.
+    permissions:
+      contents: write
+    steps:
+      - name: Descargar el APK compilado
+        uses: actions/download-artifact@v4
+        with:
+          name: apk
+
+      - name: Comprobar el SHA-256 del APK
+        env:
+          NOMBRE: ${{ needs.apk.outputs.nombre }}
+          ESPERADO: ${{ needs.apk.outputs.sha256 }}
+        run: echo "$ESPERADO  $NOMBRE" | sha256sum -c -
 
       # La URL del asset en un release de GitHub es predecible (releases/download/<tag>/<archivo>),
       # así que el QR se genera antes de publicar y apunta directo a la descarga del APK.
       - name: Generar el QR de instalación
-        if: steps.publicar.outputs.si == 'true'
         run: |
           pip install --quiet "qrcode[pil]"
-          url="https://github.com/${{ github.repository }}/releases/download/${{ steps.artefacto.outputs.tag }}/${{ steps.artefacto.outputs.nombre }}"
+          url="https://github.com/${{ github.repository }}/releases/download/${{ needs.apk.outputs.tag }}/${{ needs.apk.outputs.nombre }}"
           python3 -c "import qrcode; qrcode.make('$url').save('qr.png')"
 
       - name: Publicar el release en GitHub
-        if: steps.publicar.outputs.si == 'true'
         uses: softprops/action-gh-release@v3.0.3
         with:
-          tag_name: ${{ steps.artefacto.outputs.tag }}
-          name: Festa mobile ${{ steps.artefacto.outputs.tag }}
+          tag_name: ${{ needs.apk.outputs.tag }}
+          name: Festa mobile ${{ needs.apk.outputs.tag }}
           body: |
             APK de instalación directa para el pilot (no pasa por una tienda de apps).
 
             Escanea este código o descarga el `.apk` de abajo, e instálalo habilitando "orígenes
             desconocidos" en el celular:
 
-            ![QR de instalación](https://github.com/${{ github.repository }}/releases/download/${{ steps.artefacto.outputs.tag }}/qr.png)
+            ![QR de instalación](https://github.com/${{ github.repository }}/releases/download/${{ needs.apk.outputs.tag }}/qr.png)
 
             Enlace fijo a la última versión: https://github.com/${{ github.repository }}/releases/latest/download/festa-mobile.apk
 
             ### Versión
-            - Versión de la app: `${{ steps.artefacto.outputs.version }}`
-            - Tag: `${{ steps.artefacto.outputs.tag }}`
+            - Versión de la app: `${{ needs.apk.outputs.version }}`
+            - Tag: `${{ needs.apk.outputs.tag }}`
             - Commit: [`${{ github.sha }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
             - Ejecución del flujo: [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
-            - Compilado: `${{ steps.artefacto.outputs.fecha }}`
-            - SHA-256 de `festa-mobile.apk`: `${{ steps.artefacto.outputs.sha256 }}`
+            - Compilado: `${{ needs.apk.outputs.fecha }}`
+            - SHA-256 de `festa-mobile.apk`: `${{ needs.apk.outputs.sha256 }}`
 
             Los mismos datos están en `version.json`.
           files: |
-            ${{ steps.artefacto.outputs.nombre }}
+            ${{ needs.apk.outputs.nombre }}
             version.json
             qr.png
